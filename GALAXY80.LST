@@ -1,0 +1,2072 @@
+              	; --------------------------------------
+              	; zasm: assemble "GALAXY80.ASM"
+              	; opts: --asm8080
+              	; date: 2020-08-25 16:25:15
+              	; --------------------------------------
+
+
+              	; +----------------------------------+
+              	; |       SCELBI'S GALAXY GAME       |
+              	; |           FOR THE 8080           |
+              	; |                                  |
+              	; |             AUTHOR:              |
+              	; |          ROBERT FIDLEY           |
+              	; |                                  |
+              	; |       (C) COPYRIGHT 1976         |
+              	; |                                  |
+              	; | Scelbi Computer Consulting, Inc. |
+              	; |   1322 Rear - Boston Post Road   |
+              	; |        Milford, CT 06460         |
+              	; |                                  |
+              	; |       ALL RIGHTS RESERVED        |
+              	; |                                  |
+              	; +----------------------------------+
+              	;
+              	; **************************************************
+              	;
+              	; Along time ago in a magazine far, far away....
+              	;
+              	; In 1976 Scelbi Computer Consulting, Inc. published
+              	; "Scelbi's Galaxy Game for the '8008/8080'" written
+              	; by Robert Findley.
+              	;
+              	; The publication included the complete source code
+              	; listings for Intel 8008 and 8080, flow charts, and
+              	; detailed documentation of how the game functions.
+              	;
+              	; The source listings for GALAXY are for Intel's
+              	; original 8008 mnemonics published in 1972.
+              	;
+              	; Examples:
+              	;
+              	; Old	New
+              	; ---	-------
+              	; JFC	JNC
+              	; CAL	CALL
+              	; RFZ	RNZ
+              	; LMs	MOV M,s
+              	; ADM	ADD M
+              	;
+              	; ******* CAPTAIN'S LOG ***************************
+              	;
+              	; -- Stardate: Aug 25, 2020 -----------------------
+              	; -- Patrick Linstruth <patrick@deltecent.com -----
+              	;
+              	; This version of GALAXY is Findley's original 8080
+              	; program listing modified for Digital Research's
+              	; 8080 Assember (ASM.COM) and ZASM by Günter Woigk.
+              	; The console I/O routines are for the MITS 88-2SIO
+              	; serial adapter.
+              	;
+              	; This version is designed to be loaded at 0000H
+              	; and executed at "GALAXY" which is currently
+              	; located at 09A3H.
+              	; -------------------------------------------------
+              	;
+              	; **************************************************
+              	;
+              	; Captain your own crusading starship against the
+              	; logic of your "8008" or "8080". You must destroy
+              	; a random number of alien ships without running
+              	; out of stardates, out of fuel, out of ammunition,
+              	; or out of the galaxy. Plan your mission. How much
+              	; fuel is used for your warp factor? Don't run
+              	; into roaming stars that can damage your ship.
+              	; Suddenly. Condition Red. Alien in sight.
+              	; How big is he? Fire a phasor or torpedo. He's
+              	; damaged or destroyed. But, you've used valuable
+              	; fuel. That's just the beginning. A new game
+              	; every time.
+              	;
+              	; **************************************************
+              	
+000A:         	LF	EQU	0AH
+000D:         	CR	EQU	0DH
+              	
+0000:         		ORG	0000H
+              	
+0000: 02      		DB	2 		;Course 1.0
+0001: 00      		DB	0
+0002: 02      		DB	2 		;Course 1.5
+0003: FF      		DB	0FFH
+0004: 02      		DB	2 		;Course 2.0
+0005: FE      		DB	0FEH
+0006: 01      		DB	1 		;Course 2.5
+0007: FE      		DB	0FEH
+0008: 00      		DB	000 		;Course 3.0
+0009: FE      		DB	0FEH
+000A: FF      		DB	0FFH		;Course 3.5
+000B: FE      		DB	0FEH
+000C: FE      		DB	0FEH		;Course 4.0
+000D: FE      		DB	0FEH
+000E: FE      		DB	0FEH		;Course 4.5
+000F: FF      		DB	0FFH
+0010: FE      		DB	0FEH		;Course 5.0
+0011: 00      		DB	000
+0012: FE      		DB	0FEH		;Course 5.5
+0013: 01      		DB	001
+0014: FE      		DB	0FEH		;Course 6.0
+0015: 02      		DB	002
+0016: FF      		DB	0FFH		;Course 6.5
+0017: 02      		DB	002
+0018: 00      		DB	000 		;Course 7.0
+0019: 02      		DB	002
+001A: 01      		DB	001 		;Course 7.5
+001B: 02      		DB	002
+001C: 02      		DB	002 		;Course 8.0
+001D: 02      		DB	002
+001E: 02      		DB	002 		;Course 8.5
+001F: 01      		DB	001
+              	
+0020: FFFFFFFF		ORG	0028H
+0024: FFFFFFFF	
+              	
+0028: 00      		DB	000		;Register storage
+0029: 00      		DB	000 		;Register storage
+002A: 00      		DB	000 		;Register storage
+002B: 00      		DB	000 		;Tern porary storage
+              	
+002C: FFFFFFFF		ORG	0030H
+              	
+0030: 00      		DB	000		;Crossing flag
+0031: 00      		DB	000		;Crossing indicator
+0032: 00      		DB	000		;Temporary storage
+0033: 00      		DB	000		;Tern porary storage
+              	
+0034: FFFFFFFF		ORG	0040H
+0038: FF...   	
+              	
+0030:         	ALNMSK:	EQU	00110000b	;Num. aliens mask
+0008:         	STNMSK:	EQU	00001000b	;Space station mask
+0007:         	STRMSK:	EQU	00000111b	;Num. stars mask
+0038:         	ROWMSK:	EQU	00111000b	;Row mask
+0007:         	COLMSK:	EQU	00000111b	;Column mask
+000F:         	TORMSK:	EQU	00001111b	;Num. torpedos mask
+              	
+0040: 00      		DB	000 ;Random number		//40
+0041: 00      		DB	000 ;Ran. num. constant		//41
+0042: 00      	DQUAD:	DB	000 ;quadrant contents		//42
+0043: 00      	DSHPS:	DB	000 ;Sec. loco of S. ship	//43
+0044: 00      	DSTRS:	DB	000 ;Sector loco of star	//44
+0045: 00      		DB	000 ;Sector loco of star	//45
+0046: 00      		DB	000 ;Sector loco of star	//46
+0047: 00      		DB	000 ;Sector loco of star	//47
+0048: 00      		DB	000 ;Sector loco of star	//48
+0049: 00      		DB	000 ;Sector loco of star	//49
+004A: 00      		DB	000 ;Sector loco of star	//4A
+004B: 00      	DSSTS:	DB	000 ;Sec. loco of space st.	//4B
+004C: 00      	DAS1S:	DB	000 ;S. loc. of A.S. No.1	//4C
+004D: 00      	DAS2S:	DB	000 ;S. loc. of A.S. No.2	//4D
+004E: 00      	DAS3S:	DB	000 ;S. loc. of A.S. No.3	//4E
+004F: 00      	DMELS:	DB	000 ;Main nrgy L.S. half	//4F
+0050: 00      	DMEMS:	DB	000 ;Main nrgy M.S. ha lf	//50
+0051: 00      	DSELS:	DB	000 ;Shld nrgy L.S. half	//51
+0052: 00      	DSEMS:	DB	000 ;Shld nrgy M.S. half	//52
+0053: 00      	DAS1LS:DB	000 ;A.S. 1 nrgy L.S. half	//53
+0054: 00      	DAS1MS:DB	000 ;A.S. 1 nrgy MS half	//54
+0055: 00      	DAS2LS:DB	000 ;A.S. 2 nrgy L.S. half	//55
+0056: 00      	DAS2MS:DB	000 ;A.S. 2 nrgy MS half	//56
+0057: 00      	DAS3LS:DB	000 ;A.S. 3 nrgy L.S. half	//57
+0058: 00      	DAS3MS:DB	000 ;A.S. 3 nrgy MS half	//58
+0059: 00      	DSHPQ:	DB	000 ;Quad. loc. of S. ship	//59
+005A: 00      	DNTOR:	DB	000 ;Number torpedoes		//5A
+005B: 00      	DNSST:	DB	000 ;Num. space stations	//5B
+005C: 00      	DNALS:	DB	000 ;Num. alien ships		//5C
+005D: 00      	DNSTD:	DB	000 ;Num. stardates		//5D
+005E: 00      	DTMP1:	DB	000 ;Temporary storage		//5E
+005F: 00      	DTMP2:	DB	000 ;Temporary storage		//5F
+0060: 00      	DDIG1:	DB	000 ;Digit storage		//60
+0061: 00      	DDIG2:	DB	000 ;Digit storage		//61
+0062: 00      	DDIG3:	DB	000 ;Digit storage		//62
+0063: 00      	DDIG4:	DB	000 ;Digit storage		//63
+0064: 00      	DDIG5:	DB	000 ;Digit storage		//64
+              	
+0065: FFFFFFFF		ORG	0080H
+0069: FF...   	
+              	
+0080: 0D0A3120		DB	CR,LF,'1',' ',' ',' ',' ',' '
+0084: 20202020	
+0088: 31202020		DB	'1',' ',' ',' ',' ',' ','1',' '
+008C: 20203120	
+0090: 20202020		DB	' ',' ',' ',' ','1',' ',' ',' '
+0094: 31202020	
+0098: 20203120		DB	' ',' ','1',' ',' ',' ',' ',' '
+009C: 20202020	
+00A0: 31202020		DB	'1',' ',' ',' ',' ',' ','1',' '
+00A4: 20203120	
+00A8: 20202020		DB	' ',' ',' ',' ','1',' ',' ',' '
+00AC: 31202020	
+00B0: 202031  		DB	' ',' ','1'
+              	
+              	;  through 377 reserved for Galaxy content table
+              	
+00B3: FFFFFFFF		ORG	0100H	; Next page
+00B7: FF...   	
+              	
+0100: 0D0A    	MSGDYW:	DB	CR,LF
+0102: 444F2059	  	DB	'DO YOU WANT TO GO ON A SPACE VOYAGE? '
+0106: 4F552057	
+010A: 414E5420	
+010E: 544F2047	
+0112: 4F204F4E	
+0116: 20412053	
+011A: 50414345	
+011E: 20564F59	
+0122: 4147453F	
+0126: 20      	
+0127: 00      	  	DB	0
+0128: 0D0A    	MSGYJD:	DB	CR,LF
+012A: 594F5520	  	DB	'YOU MUST DESTROY  '
+012E: 4D555354	
+0132: 20444553	
+0136: 54524F59	
+013A: 2020    	
+013C: 2020414C	MSGSPS:	DB	'  ALIEN SHIPS IN  '
+0140: 49454E20	
+0144: 53484950	
+0148: 5320494E	
+014C: 2020    	
+014E: 20205354	MSGDTS:	DB	'  STARDATES WITH '
+0152: 41524441	
+0156: 54455320	
+015A: 57495448	
+015E: 20      	
+015F: 20205350	MSGSSS:	DB	'  SPACE STATIONS'
+0163: 41434520	
+0167: 53544154	
+016B: 494F4E53	
+016F: 00      	  	DB	0
+0170: 0D0A    	MSG123:	DB	CR,LF
+0172: 202D312D	  	DB	' -1--2--3--4-'
+0176: 2D322D2D	
+017A: 332D2D34	
+017E: 2D      	
+017F: 2D352D2D	  	DB	'-5--6--7--8-'
+0183: 362D2D37	
+0187: 2D2D382D	
+018B: 00      	  	DB	0
+018C:         	MSGSTDT:
+018C: 0D0A    		DB	CR,LF
+018E:         	MSGSTDT1:
+018E: 30      		DB	'0'
+018F:         	MSGSTDT2:
+018F: 20202020		DB	'                        '
+0193: 20...   	
+01A7: 00      	  	DB	0
+01A8:         	MSGSTDT3:
+01A8: 20535441	  	DB	' STARDATE  300'
+01AC: 52444154	
+01B0: 45202033	
+01B4: 3030    	
+01B6: 30      	MSGSDP:	DB	'0'
+01B7: 00      	  	DB	0
+01B8: 20434F4E	MSGCND:	DB	' CONDITION '
+01BC: 44495449	
+01C0: 4F4E20  	
+01C3: 47524545	MSGGRN:	DB	'GREEN'
+01C7: 4E      	
+01C8: 00      	  	DB	0
+01C9: 20515541	MSGQAD:	DB	' QUADRANT  '
+01CD: 4452414E	
+01D1: 542020  	
+01D4: 202020  	MSGPQD:	DB	'   '
+01D7: 00      	  	DB	0
+01D8: 20534543	MSGSCT:	DB	' SECTOR    '
+01DC: 544F5220	
+01E0: 202020  	
+01E3: 202020  	MSGSC1:	DB	'   '
+01E6: 00      	  	DB	0
+01E7: 20454E45	MSGENR:	DB	' ENERGY       '
+01EB: 52475920	
+01EF: 20202020	
+01F3: 2020    	
+01F5: 20      	MSGENP:	DB	' '
+01F6: 00      	  	DB	0
+01F7: 20544F52	MSGTRP:	DB	' TORPEDOES  '
+01FB: 5045444F	
+01FF: 45532020	
+0203: 20      	MSGTPP:	DB	' '
+0204: 00      	  	DB	0
+0205: 20534849	MSGSHD:	DB	' SHIELDS      '
+0209: 454C4453	
+020D: 20202020	
+0211: 2020    	
+0213: 20      	MSGSHP:	DB	' '
+0214: 00      	  	DB	0
+0215: 0D0A    	MSGCMD:	DB	CR,LF
+0217: 434F4D4D	  	DB	'COMMAND?'
+021B: 414E443F	
+021F: 00      	  	DB	0
+0220: 0D0A    	MSGCRS:	DB	CR,LF
+0222: 434F5552	  	DB	'COURSE (1-8.5)? '
+0226: 53452028	
+022A: 312D382E	
+022E: 35293F20	
+0232: 00      	  	DB	0
+0233: 0D0A    	MSGWRP:	DB	CR,LF
+0235: 57415250	  	DB	'WARP FACTOR (0.1-7.7)? '
+0239: 20464143	
+023D: 544F5220	
+0241: 28302E31	
+0245: 2D372E37	
+0249: 293F20  	
+024C: 00      	  	DB	0
+024D: 0D0A    	MSGLRS:	DB	CR,LF
+024F: 4C2E522E	  	DB	'L.R. SCAN FOR'
+0253: 20534341	
+0257: 4E20464F	
+025B: 52      	
+025C: 00      	  	DB	0
+025D: 0D0A    	MSGMSF:	DB	CR,LF
+025F: 4D495353	  	DB	'MISSION FAILED, YOU HAVE RUN OUT	OF STARDATES'
+0263: 494F4E20	
+0267: 4641494C	
+026B: 45442C20	
+026F: 594F5520	
+0273: 48415645	
+0277: 2052554E	
+027B: 204F5554	
+027F: 094F4620	
+0283: 53544152	
+0287: 44415445	
+028B: 53      	
+028C: 00      	  	DB	0
+028D: 0D0A    	MSGKAB:	DB	CR,LF
+028F: 4B412D42	  	DB	'KA-BOOM, YOU CRASHED INTO A STAR. YOUR SHIP IS DESTROYED'
+0293: 4F4F4D2C	
+0297: 20594F55	
+029B: 20435241	
+029F: 53484544	
+02A3: 20494E54	
+02A7: 4F204120	
+02AB: 53544152	
+02AF: 2E20594F	
+02B3: 55522053	
+02B7: 48495020	
+02BB: 49532044	
+02BF: 45535452	
+02C3: 4F594544	
+02C7: 00      	  	DB	0
+02C8: 0D0A    	MSGYMO:	DB	CR,LF
+02CA: 594F5520	  	DB	'YOU MOVED OUT	OF THE GALAXY, YOUR SHIP IS LOST..LOST'
+02CE: 4D4F5645	
+02D2: 44204F55	
+02D6: 54094F46	
+02DA: 20544845	
+02DE: 2047414C	
+02E2: 4158592C	
+02E6: 20594F55	
+02EA: 52205348	
+02EE: 49502049	
+02F2: 53204C4F	
+02F6: 53542E2E	
+02FA: 4C4F5354	
+02FE: 00      	  	DB	0
+02FF: 0D0A    	MSGLOE:	DB	CR,LF
+0301: 4C4F5353	  	DB	'LOSS OF ENERGY    '
+0305: 204F4620	
+0309: 454E4552	
+030D: 47592020	
+0311: 2020    	
+0313: 20      	MSGLOP:	DB	' '
+0314: 00      	  	DB	0
+0315: 0D0A    	MSGDSE:	DB	CR,LF
+0317: 44414E47	  	DB	'DANGER-SHIELD ENERGY 000'
+031B: 45522D53	
+031F: 4849454C	
+0323: 4420454E	
+0327: 45524759	
+032B: 20303030	
+032F: 00      	  	DB	0
+0330: 0D0A    	MSGSET:	DB	CR,LF
+0332: 53484945	  	DB	'SHIELD ENERGY TRANSFER = '
+0336: 4C442045	
+033A: 4E455247	
+033E: 59205452	
+0342: 414E5346	
+0346: 4552203D	
+034A: 20      	
+034B: 00      	  	DB	0
+034C: 0D0A    	MSGNEE:	DB	CR,LF
+034E: 4E4F5420	  	DB	'NOT ENOUGH ENERGY'
+0352: 454E4F55	
+0356: 47482045	
+035A: 4E455247	
+035E: 59      	
+035F: 00      	  	DB	0
+0360: 0D0A    	MSGTTY:	DB	CR,LF
+0362: 544F5250	  	DB	'TORPEDO TRAJECTORY(1-8.5) : '
+0366: 45444F20	
+036A: 5452414A	
+036E: 4543544F	
+0372: 52592831	
+0376: 2D382E35	
+037A: 29203A20	
+037E: 00      	  	DB	0
+037F: 0D0A    	MSGASD:	DB	CR,LF
+0381: 414C4945	 	DB	'ALIEN SHIP DESTROYED'
+0385: 4E205348	
+0389: 49502044	
+038D: 45535452	
+0391: 4F594544	
+0395: 00      	  	DB	0
+0396: 0D0A    	MSGYMA:	DB	CR,LF
+0398: 594F5520	  	DB	'YOU MISSED! ALIEN SHIP RETALIATES'
+039C: 4D495353	
+03A0: 45442120	
+03A4: 414C4945	
+03A8: 4E205348	
+03AC: 49502052	
+03B0: 4554414C	
+03B4: 49415445	
+03B8: 53      	
+03B9: 00      	  	DB	0
+03BA: 0D0A    	MSGSSD:	DB	CR,LF
+03BC: 53504143	  	DB	'SPACE STATION '
+03C0: 45205354	
+03C4: 4154494F	
+03C8: 4E20    	
+03CA: 44455354	MSGDES:	DB	'DESTROYED'
+03CE: 524F5945	
+03D2: 44      	
+03D3: 00      	  	DB	0
+03D4: 0D0A    	MSGCYH:	DB	CR,LF
+03D6: 434F4E47	  	DB	'CONGRATULATIONS, YOU HAVE ELIMINATED ALL OF THE ALIEN SHIPS'
+03DA: 52415455	
+03DE: 4C415449	
+03E2: 4F4E532C	
+03E6: 20594F55	
+03EA: 20484156	
+03EE: 4520454C	
+03F2: 494D494E	
+03F6: 41544544	
+03FA: 20414C4C	
+03FE: 204F4620	
+0402: 54484520	
+0406: 414C4945	
+040A: 4E205348	
+040E: 495053  	
+0411: 00      	  	DB	0
+0412: 0D0A    	MSGTRG:	DB	CR,LF
+0414: 54524143	  	DB	'TRACKING: '
+0418: 4B494E47	
+041C: 3A20    	
+041E: 202020  	MSGTRK:	DB	'   '
+0421: 00      	  	DB	0
+0422: 0D0A    	MSGGDY:	DB	CR,LF
+0424: 47414C41	  	DB	'GALAXY DISPLAY'
+0428: 58592044	
+042C: 4953504C	
+0430: 4159    	
+0432: 00      	  	DB	0
+0433: 0D0A    	MSGPEF:	DB	CR,LF
+0435: 50484153	  	DB	'PHASOR ENERGY TO FIRE = '
+0439: 4F522045	
+043D: 4E455247	
+0441: 5920544F	
+0445: 20464952	
+0449: 45203D20	
+044D: 00      	  	DB	0
+044E: 0D0A    	MSGASF:	DB	CR,LF
+0450: 414C4945	  	DB	'ALIEN SHIP AT SECTOR '
+0454: 4E205348	
+0458: 49502041	
+045C: 54205345	
+0460: 43544F52	
+0464: 20      	
+0465: 202C203A	MSGSEC:	DB	' , : '
+0469: 20      	
+046A: 00      	  	DB	0
+046B: 454E4552	MSGEGY:	DB	'ENERGY =    '
+046F: 4759203D	
+0473: 20202020	
+0477: 20      	MSGDEY:	DB	' '
+0478: 00      	  	DB	0
+0479: 0D0A    	MSGNAS:	DB	CR,LF
+047B: 4E4F2041	  	DB	'NO ALIEN SHIPS! WASTED SHOT'
+047F: 4C49454E	
+0483: 20534849	
+0487: 50532120	
+048B: 57415354	
+048F: 45442053	
+0493: 484F54  	
+0496: 00      	MSGZRO:	DB	0
+0497: 0D0A    	MSGNEL:	DB	CR,LF
+0499: 4142414E	  	DB	'ABANDON SHIP! NO ENERGY LEFT'
+049D: 444F4E20	
+04A1: 53484950	
+04A5: 21204E4F	
+04A9: 20454E45	
+04AD: 52475920	
+04B1: 4C454654	
+04B5: 00      	  	DB	0
+04B6: 0D0A    	MSGNTS:	DB	CR,LF
+04B8: 4E4F2054	  	DB	'NO TORPEDOES'
+04BC: 4F525045	
+04C0: 444F4553	
+04C4: 00      	  	DB	0
+04C5: 0D0A    	MSG111:	DB	CR,LF
+04C7: 3120    	  	DB	'1 '
+04C9: 20202020	MSG11A:	DB	'    1 '
+04CD: 3120    	
+04CF: 20202020	MSG11B:	DB	'    1 '
+04D3: 3120    	
+04D5: 20202020	MSG11C:	DB	'    1'
+04D9: 31      	
+04DA: 00      	  	DB	0
+04DB: 0D0A    	MSGLST:	DB	CR,LF
+04DD: 4C415354	  	DB	'LAST'
+04E1: 00      	  	DB	0
+04E2: 0D0A    	MSGCHK:	DB	CR,LF
+04E4: 43484943	  	DB	'CHICKEN!'
+04E8: 4B454E21	
+04EC: 00      	  	DB	0
+              	
+04ED: FFFFFFFF		ORG	0500H
+04F1: FF...   	
+              	
+0500:         	MSG:
+0500: 7E      		MOV	A,M		;Fetch character
+0501: A7      		ANA	A		;End of message?
+0502: C8      		RZ			;Yes, return
+0503: CD8F0F  	 	CALL	PRINT		;No, print character
+0506: 23      	 	INX	H		;Increment message pointer
+0507: C30005  		JMP	MSG		;Continue printout
+050A:         	RN:
+050A: 214000  		LXI	H,0040H		;Set random number pointer
+050D: 7E      		MOV	A,M		;The random number
+050E: 47      		MOV	B,A		;Is generated by performing
+050F: 07      		RLC			;The series of arithmetic
+0510: A8      		XRA	B		;Operations presented
+0511: 0F      		RRC
+0512: 2C      		INR	L
+0513: 34      		INR	M
+0514: 86      		ADD	M
+0515: 2D      		DCR	L
+0516: 77      		MOV	M,A		;Save random number
+0517: C9      		RET
+0518:         	SSPLS:
+0518: 1EF7    		MVI	E,0F7H		;Mask to delete space station
+051A: C32405  		JMP	PLS		;Delete excess space station
+051D:         	SSMNS:
+051D: 1E08    		MVI	E,STNMSK	;Mask to add space station
+051F: C33205  		JMP	MNS		;Add a space station
+0522:         	ASPLS:
+0522: 1ECF    		MVI	E,0CFH		;Mask to delete alien ship
+0524:         	PLS:
+0524: CD0A05  		CALL	RN		;Fetch random low address
+0527: F6C0    		ORI	0C0H		;Set to point to galaxy
+0529: 6F      		MOV	L,A		;Set up galaxy pointer
+052A: 7B      		MOV	A,E		;Load mask into accumulator
+052B: A6      		ANA	M		;Delete from galaxy
+052C: 77      		MOV	M,A		;Put back in galaxy
+052D: C3D309  		JMP	GLXCK		;Check galaxy again
+0530:         	ASMNS:
+0530: 1E10    		MVI	E,010H		;Mask to add alien ship
+0532:         	MNS:
+0532: CD0A05  		CALL	RN		;Fetch random low address
+0535: F6C0    		ORI	0C0H		;Set to point to galaxy
+0537: 6F      		MOV	L,A		;Set up galaxy pointer
+0538: 7B      		MOV	A,E		;Load mask into accumulator
+0539: B6      		ORA	M		;Add to galaxy
+053A: 77      		MOV	M,A		;Put back in galaxy
+053B: C3D309  		JMP	GLXCK		;Check galaxy again
+053E:         	DIGPRT:
+053E: 7E      		MOV	A,M		;Fetch digit
+053F: C630    		ADI	'0'		;Form ASCII code
+0541: 23      	 	INX	H		;Increment digit table pointer
+0542: EB      	 	XCHG			;Set pointer to message area
+0543: 77      		MOV	M,A		;Put digit in message
+0544: 2B      	 	DCX	H		;Move message pointer
+0545: 05      		DCR	B		;Last digit in message?
+0546: C8      		RZ			;Yes, return
+0547: EB      	 	XCHG			;No, set pointer to digit table
+0548: C33E05  		JMP	DIGPRT		;Move more digits
+              	
+054B:         	BINDEC:
+054B: EB      		XCHG			;Save binary pointer
+054C: 216000  		LXI	H,0060H		;Set pointer to digit storage
+054F: 74      		MOV	M,H		;Clear digit table
+0550: 2C      		INR	L
+0551: 74      		MOV	M,H
+0552: 2C      		INR	L
+0553: 74      		MOV	M,H
+0554: 2C      		INR	L
+0555: 74      		MOV	M,H
+0556: 2C      		INR	L
+0557: 74      		MOV	M,H
+0558: EB      		XCHG			;Set pointer to binary number
+0559: 5E      		MOV	E,M		;Fetch least significant half
+055A: 05      		DCR	B		;Single precision?
+055B: CA6005  		JZ	BNDC		;Yes, most significant half = 0
+055E: 2C      		INR	L		;No, advance pointer
+055F: 56      		MOV	D,M		;Fetch most significant half
+0560:         	BNDC:
+0560: 216400  		LXI	H,0064H		;Set pointer to 5th digit
+0563: 011027  		LXI	B,10000		;BC = 10000
+0566: CD8005  		CALL	BD		;Calculate 5th digit
+0569: 2D      		DCR	L		;Set pointer to 4th digit
+056A: 01E803  		LXI	B,1000		;BC = 1000
+056D: CD8005  		CALL	BD		;Calculate 4th digit
+0570: 2D      		DCR	L		;Set pointer to 3rd digit
+0571: 016400  		LXI	B,100		;BC = 100
+0574: CD8005  		CALL	BD		;Calculate 3rd digit
+0577: 2D      		DCR	L		;Set pointer to 2nd digit
+0578: 0E0A    		MVI	C,10		;Least signficant half of 10
+057A: CD8005  		CALL	BD		;Calculate 2nd digit
+057D: 2D      		DCR	L		;Set pointer to 1st digit
+057E: 73      		MOV	M,E		;Store 1st digit
+057F: C9      		RET			;Return to calling program
+0580:         	BD:
+0580: 34      		INR	M		;Increment and save new digit
+0581: 7B      		MOV	A,E		;Fetch least significant half
+0582: 91      		SUB	C		;Subract least signif. constant
+0583: 5F      		MOV	E,A		;Save least significant half
+0584: 7A      		MOV	A,D		;Fetch most significant half
+0585: 98      		SBB	B		;Subtract most signif. constant
+0586: 57      		MOV	D,A		;Save most significant half
+0587: D28005  		JNC	BD		;If greater than 0, continue calc.
+058A: 7B      		MOV	A,E		;Else, restore bin. & dec. value
+058B: 81      		ADD	C		;Add least signficant constant
+058C: 5F      		MOV	E,A		;Save least significant half
+058D: 7A      		MOV	A,D		;Fetch most significant half
+058E: 88      		ADC	B		;Add most significant constant
+058F: 57      		MOV	D,A		;Save most significant half
+0590: 35      		DCR	M		;Decrement digit stored
+0591: C9      		RET			;Return
+0592:         	LOAD:
+0592: 2E4F    		MVI	L,04FH		;Space ship energy storage
+0594: 3688    		MVI	M,088H		;Least signif. half of 5000 units
+0596: 2C      		INR	L
+0597: 360B    		MVI	M,00BH		;Most signif. have of 5000 units
+0599: 2C      		INR	L		;Advance to shield energy
+059A: 74      		MOV	M,H		;Initial shield energy = 0
+059B: 2C      		INR	L
+059C: 74      		MOV	M,H		;Most signif. half of shield nrgy
+059D: 2E5A    		MVI	L,05AH		;Set pointer torpedo storage
+059F: 360A    		MVI	M,10		;Initial amount = 10 torpedoes
+05A1: C9      		RET
+05A2:         	ROTR4:
+05A2: 0F      		RRC
+05A3:         	ROTR3:
+05A3: 0F      		RRC
+05A4: 0F      		RRC
+05A5: 0F      		RRC
+05A6: C9      		RET
+05A7:         	LOCSET:
+05A7: CD0A05  		CALL	RN		;Fetch random location
+05AA: E63F    		ANI	03FH		;Mask off most signficant bits
+05AC: 47      		MOV	B,A		;Save location
+05AD: CD6207  		CALL	MATCH		;New location match others?
+05B0: CAA705  		JZ	LOCSET		;Yes, find new location
+05B3: 6B      		MOV	L,E		;Set pointer to storage location
+05B4: 70      		MOV	M,B		;Save indicated loc. in table
+05B5: 1C      		INR	E		;Advance table pointer
+05B6: 0D      		DCR	C		;Last entry filled?
+05B7: C2A705  		JNZ	LOCSET		;No, find next location
+05BA: C9      		RET			;Yes, return
+05BB:         	ROWSET:
+05BB: 218F01  		LXI	H,MSGSTDT2	;Pointer to row message
+05BE:         	RCLR:
+05BE: 3620    		MVI	M,' '		;Store a space character
+05C0: 2C      		INR	L		;Advance message pointer
+05C1: 3EA7    		MVI	A,0A7H
+05C3: BD      		CMP	L		;Message cleared?
+05C4: C2BE05  		JNZ	RCLR		;No, continue clearing
+05C7: 79      		MOV	A,C		;Set up row no. for message
+05C8: C6B0    		ADI	0B0H	
+05CA: 218E01  		LXI	H,MSGSTDT1	;Point to row number char.
+05CD: 77      		MOV	M,A		;Store row number in message
+05CE: 0D      		DCR	C		;Set row number for check out
+05CF: 214300  		LXI	H,0043H		;Set pointer to location table
+05D2: CD2506  		CALL	RWPNT		;Fetch space ship location
+05D5: C2E005  		JNZ	STR		;In this row? No
+05D8: 363C    		MVI	M,'<'		;Yes, store space ship code
+05DA: 2C      		INR	L
+05DB: 362A    		MVI	M,'*'
+05DD: 2C      		INR	L
+05DE: 363E    		MVI	M,'>'
+05E0:         	STR:
+05E0: 2E44    		MVI	L,044H		;Set pointer to star table
+05E2:         	STR1:
+05E2: 2600    		MVI	H,000
+05E4: CD2506  		CALL	RWPNT		;Fetch star location
+05E7: C2EE05  		JNZ	NXSTR		;Star here? No, try next star
+05EA: 2C      		INR	L		;Set pointer to store star
+05EB: 362A    		MVI	M,'*'		;Store star code
+05ED: 6B      		MOV	L,E		;Set pointer to star table
+05EE:         	NXSTR:
+05EE: 2C      		INR	L		;Advance star table pointer
+05EF: 3E4B    		MVI	A,04BH		;End of table?
+05F1: BD      		CMP	L
+05F2: C2E205  		JNZ	STR1		;No, check next star
+05F5: 2600    		MVI	H,000		;Restore page pointer
+05F7: CD2506  		CALL	RWPNT		;Fetch S.S. location
+05FA: C20506  		JNZ	AS		;S.S. here? No, try A.S.
+05FD: 363E    		MVI	M,'>'		;Store S.S. code
+05FF: 2C      		INR	L
+0600: 3631    		MVI	M,'1'
+0602: 2C      		INR	L
+0603: 363C    		MVI	M,'<'
+0605:         	AS:
+0605: 2E4C    		MVI	L,04CH		;Pointer to A.S. table
+0607:         	AS1:
+0607: 2600    		MVI	H,000
+0609: CD2506  		CALL	RWPNT		;Fetch A.S. location
+060C: C21806  		JNZ	NXAS		;A.S. here? No, try next
+060F: 362B    		MVI	M,'+'		;Yes, store A.S. code
+0611: 2C      		INR	L
+0612: 362B    		MVI	M,'+'
+0614: 2C      		INR	L
+0615: 362B    		MVI	M,'+'
+0617: 6B      		MOV	L,E		;Fetch A.S. table pointer
+0618:         	NXAS:		
+0618: 2C      		INR	L		;Advance A.S. pointer
+0619: 3E4F    		MVI	A,04FH		;End of table
+061B: BD      		CMP	L
+061C: C20706  		JNZ	AS1		;No, try next A.S. location
+061F: 218C01  		LXI	H,MSGSTDT	;Set up to Print short range scan line
+0622: C30708  		JMP	CMSG		;Print and return
+0625:         	RWPNT:
+0625: 7E      		MOV	A,M		;Fetch entry location
+0626: A7      		ANA	A		;Anything here?
+0627: F8      		RM			;No, return
+0628: CDA305  		CALL	ROTR3		;Position row value
+062B: E607    		ANI	007		;Separate row entry
+062D: B9      		CMP	C		;Is row equal to current row?
+062E: C0      		RNZ			;No, return
+062F: 7E      		MOV	A,M		;Yes, fetch column location
+0630: E607    		ANI	COLMSK		;Separate column location
+0632: 47      		MOV	B,A		;Save column
+0633: 07      		RLC			;Multiply by two
+0634: 80      		ADD	B		;Form pointer to row message
+0635: C68F    		ADI	08FH
+0637: 5D      		MOV	E,L		;Save table pointer
+0638: 6F      		MOV	L,A		;Set pointer to row message
+0639: 2601    		MVI	H,001H
+063B: AF      		XRA	A		;Set Zero flag
+063C: A7      		ANA	A
+063D: C9      		RET			;Return with 'Z' flag set
+063E:         	RED:
+063E: 3652    		MVI	M,'R'		;Condition "RED"
+0640: 2C      		INR	L
+0641: 3645    		MVI	M,'E'
+0643: 2C      		INR	L
+0644: 3644    		MVI	M,'D'
+0646: 2C      		INR	L
+0647: 3600    		MVI	M,0
+0649: C3970A  		JMP	CND		;Return to short range scan
+064C:         	QUAD:
+064C: 215900  		LXI	H,0059H		;Pointer to quadrant location
+064F: 11D401  		LXI	D,MSGPQD	;Pointer to quadrant message
+0652: CD5B06  		CALL	TWO		;Put two digits in messag
+0655: 21C901  		LXI	H,MSGQAD	;Pointer to quadrant message
+0658: C30005  		JMP	MSG		;Print quadrant message
+065B:         	TWO:
+065B: 7E      		MOV	A,M		;Fetch row and column
+065C: 47      		MOV	B,A		;Save row and column
+065D: EB      		XCHG			;Set pointer to message
+065E:         	T1:
+065E: CDA305  		CALL	ROTR3		;Position row number
+0661: E607    		ANI	007		;Mask off other bits
+0663: C631    		ADI	'1'		;Form ASCII digit
+0665: 77      		MOV	M,A		;Save ASCII code in message
+0666: 78      		MOV	A,B		;Fetch column number
+0667: E607    		ANI	COLMSK		;Separate column number
+0669: C631    		ADI	'1'		;Form ASCII digit
+066B: 23      		INX	H		;Advance message pointer
+066C: 23      		INX	H
+066D: 77      		MOV	M,A		;Store digit in message
+066E: C9      		RET			;Return
+066F:         	FNUM:
+066F: 7E      		MOV	A,M		;Fetch number
+0670: FE30    		CPI	'0'		;Is number valid?
+0672: F8      		RM			;No, return with'S' flag set
+0673: D63A    		SUI	':'		;Yes, return with 'S' flag reset
+0675: C680    		ADI	080H
+0677: C9      		RET
+0678:         	NTN:
+0678: 2613    		MVI	H,19		;Set counter to 19 dashes
+067A:         	NT1:
+067A: 3E0D    		MVI	A,CR		;Print carriage return
+067C: CD8F0F  		CALL	PRINT
+067F: 3E0A    		MVI	A,LF		;Print line feed
+0681: CD8F0F  		CALL	PRINT
+0684:         	NT2:
+0684: 3E2D    		MVI	A,'-'		;ASCII code for dash
+0686: CD8F0F  		CALL	PRINT		;Print "-"
+0689: 25      		DCR	H		;Decrement counter = 0?
+068A: C28406  		JNZ	NT2		;No, print more dashes
+068D: C9      		RET
+068E:         	LRR:
+068E: C6C0    		ADI	00C0H		;Set pointer to galaxy
+0690: 47      		MOV	B,A		;Save pointer
+0691: E607    		ANI	COLMSK		;First column?
+0693: CAE306  		JZ	CLC1		;Yes, first column zero
+0696: 78      		MOV	A,B		;Fetch galaxy pointer
+0697: D601    		SUI	1		;No, back up one column
+0699: 6F      		MOV	L,A		;Pointer to quadrant in galaxy
+069A: 7E      		MOV	A,M		;Fetch quadrant contents
+069B:         	LR3:
+069B: 21C904  		LXI	H,MSG11A	;Set pointer to left quadrant
+069E: CDC606  		CALL	QDS1		;Set quadrant contents
+06A1: 68      		MOV	L,B		;Pointer to quadrant in galaxy
+06A2: 2600    		MVI	H,000
+06A4: 7E      		MOV	A,M		;Fetch quadrant contents
+06A5: 21CF04  		LXI	H,MSG11B	;Pointer to middle quadrant
+06A8: CDC606  		CALL	QDS1		;Set quadrant contents
+06AB: 78      		MOV	A,B		;Fetch quadrant location
+06AC: E607    		ANI	COLMSK		;Is quadrant in last column?
+06AE: FE07    		CPI	7
+06B0: CAE706  		JZ	CLC2		;Yes, right column zero
+06B3: 78      		MOV	A,B		;No, fetch quadrant location
+06B4: C601    		ADI	1		;Set location to right quadrant
+06B6: 6F      		MOV	L,A		;Set pointer to right quadrant
+06B7: 2600    		MVI	H,000
+06B9: 7E      		MOV	A,M		;Fetch quadrant contents
+06BA:         	LR4:
+06BA: 21D504  		LXI	H,MSG11C	;Pointer to right quadrant
+06BD: CDC606  		CALL	QDS1		;Set quadrant contents
+06C0:         	LRP:
+06C0: 21C504  		LXI	H,MSG111	;Set pntr. to L.R. row message
+06C3: C30005  		JMP	MSG		;Print L.R. scan row and return
+06C6:         	QDS1:
+06C6: 2604    		MVI	H,004H		;Set message pointer
+06C8:         	QDSET:
+06C8: 4F      		MOV	C,A		;Save quadrant contents
+06C9: CDA205  		CALL	ROTR4		;Position alien ship number
+06CC: E603    		ANI	003		;Mask alien ship number
+06CE: F630    		ORI	'0'		;Form ASCII digit
+06D0: 77      		MOV	M,A		;Store in message
+06D1: 23      		INX	H		;Increment message pointer
+06D2: 79      		MOV	A,C		;Fetch quadrant contents
+06D3: CDA305  		CALL	ROTR3		;Position space ship number
+06D6: E601    		ANI	001		;Mask space ship number
+06D8: F630    		ORI	'0'		;Form ASCII digit
+06DA: 77      		MOV	M,A		;Store space ship in message
+06DB: 23      		INX	H		;Increment message pointer
+06DC: 79      		MOV	A,C		;Fetch quadrant contents
+06DD: E607    		ANI	STRMSK		;Mask star number
+06DF: F630    		ORI	'0'		;Form ASCII digit
+06E1: 77      		MOV	M,A		;Store in message
+06E2: C9      		RET
+06E3:         	CLC1:
+06E3: AF      		XRA	A		;Clear column contents
+06E4: C39B06  		JMP	LR3		;Print 000 quadrant
+06E7:         	CLC2:
+06E7: AF      		XRA	A		;Clear column contents
+06E8: C3BA06  		JMP	LR4		;Print 000 quadrant
+06EB:         	RWCM:
+06EB: 2E5E    		MVI	L,05EH		;Pointer to adjusted column
+06ED: 7E      		MOV	A,M		;Fetch adjusted column
+06EE: 0F      		RRC			;Adjust position
+06EF: E607    		ANI	COLMSK		;Form column value
+06F1: 47      		MOV	B,A		;Save column
+06F2: 2C      		INR	L		;Advance pointer
+06F3: 7E      		MOV	A,M		;Fetch adjusted row
+06F4: 07      		RLC			;Position row value
+06F5: 07      		RLC
+06F6: E638    		ANI	ROWMSK		;For row value
+06F8: 80      		ADD	B		;Form row and column byte
+06F9: 47      		MOV	B,A		;Save in 'B'
+06FA: C9      		RET			;Return
+06FB:         	TIME:
+06FB: 215D02  		LXI	H,MSGMSF	;Stardate's time has run
+06FE:         	DONE:
+06FE: CD0005  		CALL	MSG		;Print message and start
+0701: C3A309  		JMP	GALAXY		;A new game.
+0704:         	LOST:
+0704: 21C802  		LXI	H,MSGYMO	;Moved out of known galaxy, player loses
+0707: C3FE06  		JMP	DONE		;Print message & start again
+070A:         	WPOUT:
+070A: 218D02  		LXI	H,MSGKAB	;Smashed into star, space ship destroyed
+070D: C3FE06  		JMP	DONE		;Print message & start again
+0710:         	EOUT:
+0710: 219704  		LXI	H,MSGNEL	;Out of energy, abandon ship
+0713: C3FE06  		JMP	DONE		;Print message & start again
+0716:         	NWQD:
+0716: 2E44    		MVI	L,044H		;Set pointer to start table
+0718: 1E0B    		MVI	E,11		;Set number of entries
+071A:         	CLR:
+071A: 3680    		MVI	M,080H		;Store terminate entry
+071C: 2C      		INR	L		;To clear table
+071D: 1D      		DCR	E		;Table cleared?
+071E: C21A07  		JNZ	CLR		;No, clear more
+0721: 2E42    		MVI	L,042H		;Set pointer to quad. contents
+0723: 7E      		MOV	A,M		;Fetch quadrant contents
+0724: E607    		ANI	STRMSK		;Fetch number of stars
+0726: 4F      		MOV	C,A		;Save in 'C'
+0727: 1E44    		MVI	E,044H		;Set pointer to star table
+0729: C4A705  		CNZ	LOCSET		;Setup star locations
+072C: 2E42    		MVI	L,042H		;Pointer to quadrant contents
+072E: 7E      		MOV	A,M		;Fetch quadrant contents
+072F: CDA305  		CALL	ROTR3		;Move to space station position
+0732: E601    		ANI	001		;Isolate space station entry
+0734: 4F      		MOV	C,A		;Save in 'C'
+0735: 1E4B    		MVI	E,04BH		;Set pointer to space station tbl
+0737: C4A705  		CNZ	LOCSET		;If S.S. present, set position
+073A: 2E42    		MVI	L,042H		;Pointer to quadrant contents
+073C: 7E      		MOV	A,M		;Fetch quadrant contents
+073D: CDA205  		CALL	ROTR4		;Move to alien ship position
+0740: E603    		ANI	003		;Isolate alient ship entry
+0742: 4F      		MOV	C,A		;Save in 'C'
+0743: 1E4C    		MVI	E,04CH		;Set pointer to alien ship table
+0745: C4A705  		CNZ	LOCSET		;If A. ship present, set position
+0748:         	LDAS:
+0748: CD0A05  		CALL	RN		;Fetch ran. no. for A.S. energy
+074B: 2E53    		MVI	L,053H		;Set pntr to A.S. no. 1 energy
+074D: CD5A07  	 	CALL	LAS		;Store A.S. number 1 energy
+0750: 2E55    		MVI	L,055H		;Set pointer to alien ship no. 2
+0752: CD5A07  	 	CALL	LAS		;Store A.S. number 2 energy
+0755: 2E57    		MVI	L,057H		;Set pointer to alien ship no. 3
+0757: C35A07  		JMP	LAS		;Store A.S. number 3 energy & RET
+075A:         	LAS:
+075A: 77      		MOV	M,A		;Store least significant half
+075B: E603    		ANI	003		;Form most significant half
+075D: 2C      		INR	L
+075E: 77      		MOV	M,A		;Store most significant half
+075F: C30A05  		JMP	RN		;Fetch nxt ran. num. & Return
+0762:         	MATCH:
+0762: 2E44    		MVI	L,044H		;Set pointer to star table
+0764:         	SCK:
+0764: 7E      		MOV	A,M		;Fetch first star location
+0765: A7      		ANA	A		;Is location stored here?
+0766: FA7207  		JM	NS		;No, check S.S. location
+0769: B8      		CMP	B		;Are locations equal?
+076A: C8      		RZ			;Yes, return
+076B: 2C      		INR	L		;No, increment pointer
+076C: 3E4B    		MVI	A,04BH		;Check for end of start table
+076E: BD      		CMP	L		;End of star table?
+076F: C26407  		JNZ	SCK		;No check next star location
+0772:         	NS:
+0772: 2E4B    		MVI	L,04BH		;Set pointer to S.S. location
+0774: 7E      		MOV	A,M		;Fetch S.S. location
+0775: B8      		CMP	B		;Locations equal?
+0776: C8      		RZ			;Yes, return
+0777:         	ACK:
+0777: 2C      		INR	L		;Advance pointer to A.S. table
+0778: 7E      		MOV	A,M		;Fetch alien ship location
+0779: B8      		CMP	B		;Are locations equal?
+077A: C8      		RZ			;Yes, return
+077B: 7D      		MOV	A,L		;No, ck for end of A.S. table
+077C: FE4E    		CPI	04EH		;End of alien ship table?
+077E: C27707  		JNZ	ACK		;No, try next location
+0781: A7      		ANA	A		;Yes, reset 'Z' flag to 0
+0782: C9      		RET			;Return
+0783:         	ELOS:
+0783: 2E32    		MVI	L,0032H		;Pointer to temporary storage
+0785: 73      		MOV	M,E		;Put energy amount in
+0786: 2C      		INR	L		;Temporary storage
+0787: 72      		MOV	M,D
+0788: 2D      		DCR	L		;Pointer to energy loss
+0789: 0602    		MVI	B,002		;Number of bytes for BINDEC
+078B: CD4B05  		CALL	BINDEC		;Convert energy amount
+078E: 111303  		LXI	D,MSGLOP	;Set pointer to energy message
+0791: 0604    		MVI	B,004		;Counter to number of digits
+0793: CD3E05  		CALL	DIGPRT		;Put digits in message
+0796: 21FF02  		LXI	H,MSGLOE	;Set pointer to energy loss msg
+0799: CD0708  		CALL	CMSG		;Print loss message
+079C: 2E32    		MVI	L,032H		;Put energy amount back to
+079E: 5E      		MOV	E,M		;Allow the energy to be
+079F: 2C      		INR	L		;Removed from the shields
+07A0: 56      		MOV	D,M
+07A1:         	ELS1:
+07A1: CD8B09  		CALL	CKSD		;Is shield energy sufficient?
+07A4: D27D09  		JNC	FMSD		;Yes, delete from shield & RET
+07A7: 5E      		MOV	E,M		;No, move shield energy to
+07A8: 2C      		INR	L		;Main supply
+07A9: 56      		MOV	D,M
+07AA: CD7D09  		CALL	FMSD		;Set shield energy to 0
+07AD: CD6409  		CALL	TOMN
+07B0: 2E32    		MVI	L,032H		;Then fetch energy loss
+07B2: 5E      		MOV	E,M		;From temporary storage
+07B3: 2C      		INR	L
+07B4: 56      		MOV	D,M
+07B5:         	SD0:
+07B5: CD8209  		CALL	CKMN		;Enough energy?
+07B8: DA1007  		JC	EOUT		;No, ship out of energy
+07BB: CD7309  		CALL	FMMN		;Yes, take from main
+07BE: 211503  		LXI	H,MSGDSE	;Print warning
+07C1: CD0708  		CALL	CMSG		;'Danger - Shield Energy 000'
+07C4: 0602    		MVI	B,2		;Divide energy loss by 4
+07C6: CDE608  		CALL	DVD
+07C9: CD8209  		CALL	CKMN		;Delete from main as a
+07CC: DA1007  		JC	EOUT		;Penalty for no energy
+07CF: C37309  		JMP	FMMN		;In shields
+07D2:         	ELOM:
+07D2: CD8209  		CALL	CKMN		;Enough energy in main?
+07D5: D27309  		JNC	FMMN		;Yes, take from main and return
+07D8: 4B      		MOV	C,E		;No, save energy loss
+07D9: 42      		MOV	B,D
+07DA: 2E51    		MVI	L,051H		;Fetch shield energy
+07DC: 5E      		MOV	E,M
+07DD: 2C      		INR	L
+07DE: 56      		MOV	D,M
+07DF: CD7D09  		CALL	FMSD		;Remove all shield energy
+07E2: CD6409  		CALL	TOMN		;And put in main supply
+07E5: 59      		MOV	E,C		;Restore energy loss
+07E6: 50      		MOV	D,B
+07E7: C3B507  		JMP	SD0		;Take energy from main
+07EA:         	DLET:
+07EA: 3680    		MVI	M,080H		;Remove from quadrant table
+07EC: 45      		MOV	B,L		;Save table pointer
+07ED: 2E59    		MVI	L,059H		;Fetch current quad. location
+07EF: 7E      		MOV	A,M
+07F0: C6C0    		ADI	00C0H		;Form pntr. to galaxy location
+07F2: 6F      		MOV	L,A		;Set galaxy pointer
+07F3: 78      		MOV	A,B		;Fetch table pointer
+07F4: FE4B    		CPI	04BH		;Space station hit?
+07F6: C20D08  		JNZ	DLAS		;No, delete alien ship
+07F9: 7E      		MOV	A,M		;Fetch location in galaxy
+07FA: E637    		ANI	037H		;Delete space station
+07FC: 77      		MOV	M,A		;Restore in galaxy
+07FD: 2E42    		MVI	L,042H		;Set pntr. to quad. contents
+07FF: 77      		MOV	M,A		;Save new contents
+0800: 2E5B    		MVI	L,05BH		;Set pointer to number of S.S.
+0802: 35      		DCR	M		;Decrement number of S.S.
+0803: C0      		RNZ			;If number not 0, return
+0804: 211503  		LXI	H,MSGDSE	;Print warning message
+0807:         	CMSG:
+0807: CD0005  		CALL	MSG
+080A: 2600    		MVI	H,000		;Reset pointer to page 000
+080C: C9      		RET
+080D:         	DLAS:
+080D: 7E      		MOV	A,M  		;Fetch location in galaxy
+080E: D610    		SUI	010H		;Delete 1 alien ship from quad.
+0810: 77      		MOV	M,A		;Restore in galaxy
+0811: 2E42    		MVI	L,042H		;Fetch current quad. contents
+0813: 77      		MOV	M,A		;Save new contents
+0814: 2E5C    		MVI	L,05CH		;Fetch number of A.S. counter
+0816: 35      		DCR	M		;Subtract 1 from number
+0817: C0      		RNZ			;If counter not = 0, return
+0818: 21D403  		LXI	H,MSGCYH	;If counter = 0, game over
+081B: C3FE06  		JMP	DONE		;print CONGRATULATIONS
+081E:         	DRCT:
+081E: CD8B0F  		CALL	INPUT		;Input first course number
+0821: 215E00  		LXI	H,005EH		;Pointer to temporary storage
+0824: FE31    		CPI	'1'		;Is input less than 1?
+0826: DA4F08  		JC	ZRET		;Yes, illegal input
+0829: FE39    		CPI	'9'		;Is input greater than 8?
+082B: D24F08  		JNC	ZRET		;Yes, illegal input
+082E: E60F    		ANI	00FH		;Mask off ASCII code
+0830: 07      		RLC			;If good, times 2
+0831: 77      		MOV	M,A		;And save in temporary storage
+0832: 3E2E    		MVI	A,'.'		;Print a decimal point
+0834: CD8F0F  		CALL	PRINT
+0837: CD8B0F  		CALL	INPUT		;Input second course number
+083A: FE30    		CPI	'0'		;Is digit = 0?
+083C: CA4408  		JZ	CR1		;Yes, continue process
+083F: FE35    		CPI	'5'		;No, is digit = 5?
+0841: C24F08  		JNZ	ZRET		;No, return with Z flag set
+0844:         	CR1:
+0844: E601    		ANI	001		;Mask all but least signif. bit
+0846: 86      		ADD	M		;Add 1st number input
+0847: 07      		RLC			;Ad form pointer to course
+0848: D604    		SUI	004		;Table
+084A: 77      		MOV	M,A		;Save pointer in temporary storage
+084B: C0      		RNZ			;Return with Z flag reset
+084C: C601    		ADI	1		;If not reset, reset it
+084E: C9      		RET
+084F:         	ZRET:
+084F: AF      		XRA	A 		;Set Z flag
+0850: C9      		RET			;And return
+0851:         	QCNT:
+0851: 215900  		LXI	H,0059H		;Set pointer to curr. quad. row & col storage
+0854: 7E      		MOV	A,M		;Fetch current quadrant
+0855: C6C0    		ADI	00C0H		;Form pointer to galaxy
+0857: 6F      		MOV	L,A		;Set up pointer
+0858: 7E      		MOV	A,M		;Fetch quadrant contents
+0859: 2E42    		MVI	L,042H		;Set pointer to quad. contents
+085B: 77      		MOV	M,A		;And store new contents
+085C: C9      		RET
+085D:         	ACTV:
+085D: 2E5E    		MVI	L,05EH		;Fetch course offset
+085F: 6E      		MOV	L,M		;Fetch column movement
+0860: 4E      		MOV	C,M
+0861: 2C      		INR	L		;Advance pointer
+0862: 56      		MOV	D,M		;Fetch row movement
+0863: 2E43    		MVI	L,043H		;Pointer to current sector
+0865: 7E      		MOV	A,M		;Fetch current sector
+0866: 47      		MOV	B,A		;Save in 'B'
+0867: E607    		ANI	007		;Mask off row
+0869: 2E5E    		MVI	L,05EH		;Pointer to temporary storage
+086B: 07      		RLC			;Multiply times 2
+086C: 77      		MOV	M,A		;Save adjusted column
+086D: 2C      		INR	L		;Advance storage pointer
+086E: 78      		MOV	A,B		;Fetch current sector
+086F: E638    		ANI	038H		;Mask off column
+0871: 0F      		RRC			;Set up times 2 value
+0872: 0F      		RRC
+0873: 77      		MOV	M,A		;Save adjusted row
+0874: C9      		RET
+0875:         	TRK:
+0875: 2E30    		MVI	L,030H		;Set pointer to crossing flag
+0877: 74      		MOV	M,H		;Clear quadrant crossing flag
+0878: 2E5E    		MVI	L,05EH
+087A: 7E      		MOV	A,M		;Fetch adjusted column
+087B: 81      		ADD	C		;Add column move
+087C: 77      		MOV	M,A		;Temp. save current column
+087D: F29008  		JP	NOBK		;If not left crossing, jump
+0880: E60F    		ANI	00FH		;Left crossing, correct and
+0882: 77      		MOV	M,A		;Save new adjusted column
+0883: 2E30    		MVI	L,030H		;Indicate left crossing in
+0885: 75      		MOV	M,L		;Crossing flag by non-zero
+0886: 2E59    		MVI	L,059H		;And decrement current quad.
+0888: 7E      		MOV	A,M		;Column entry
+0889: E607    		ANI	COLMSK		;Is current quad. column = 0?
+088B: C8      		RZ			;Yes, return with Z flag set
+088C: 35      		DCR	M		;Decrement current quad. clmn
+088D: C3A608  		JMP	RMV		;Do row move
+0890:         	NOBK:
+0890: FE10    		CPI	010H		;Quadrant crossing right?
+0892: DAA608  		JC	RMV		;No, do row move
+0895: E60F    		ANI	00FH		;Yes, correct and
+0897: 77      		MOV	M,A		;Save new adjusted column
+0898: 2E30    		MVI	L,030H
+089A: 75      		MOV	M,L
+089B: 2E59    		MVI	L,059H
+089D: 7E      		MOV	A,M
+089E: E607    		ANI	007
+08A0: C601    		ADI	001
+08A2: FE08    		CPI	008H
+08A4: C8      		RZ
+08A5: 34      		INR	M
+              	
+08A6:         	RMV:
+08A6: 2E5F    		MVI	L,05FH
+08A8: 7E      		MOV	A,M		;Fetch adjusted row
+08A9: 82      		ADD	D		;Add row move
+08AA: 77      		MOV	M,A		;Save new adjusted row
+08AB: F2C108  		JP	NOUP		;If not up, jump
+08AE: E60F    		ANI	00FH		;Move up 1 quadrant, correct
+08B0: 77      		MOV	M,A		;And save new adjusted row
+08B1: 2E30    		MVI	L,030H		;Then indicate crossing in
+08B3: 75      		MOV	M,L		;Crossing flag by non-zero
+08B4: 2E59    		MVI	L,059H		;And decrement quadrant row
+08B6: 7E      		MOV	A,M		;Fetch quadrant entry
+08B7: E638    		ANI	038H		;Is quadrant row = 0?
+08B9: C8      		RZ			;Yes, return with Z flag set
+08BA: 7E      		MOV	A,M		;No, decr. current quad. row
+08BB: D608    		SUI	008H
+08BD: 77      		MOV	M,A		;Save new current quadrant
+08BE: C3DA08  		JMP	CKX		;Then perform crossing logic
+08C1:         	NOUP:
+08C1: FE10    		CPI	010H		;Quadrant crossing down?
+08C3: DADA08  		JC	CKX		;No, check for crossing flag
+08C6: E60F    		ANI	00FH		;Yes, correct and
+08C8: 77      		MOV	M,A		;Save new adjusted row
+08C9: 2E30    		MVI	L,030H		;Then indicate down crossing
+08CB: 75      		MOV	M,L		;In crossing flag by non-zero
+08CC: 2E59    		MVI	L,059H		;Then incr. current quad. row
+08CE: 7E      		MOV	A,M
+08CF: E638    		ANI	038H		;Separate row entry
+08D1: C608    		ADI	008H		;Increment row entry
+08D3: FE40    		CPI	040H		;Move out of galaxy?
+08D5: C8      		RZ			;Yes, return with Z flag set
+08D6: 7E      		MOV	A,M		;No, then incr. crnt. quad. row
+08D7: C608    		ADI	008H
+08D9: 77      		MOV	M,A		;save new current quadrant
+08DA:         	CKX:
+08DA: 2E28    		MVI	L,028H		;Set pointer to register storage
+08DC: 73      		MOV	M,E		;Save registers 'E' 'D' and 'C'
+08DD: 2C      		INR	L
+08DE: 72      		MOV	M,D
+08DF: 2C      		INR	L
+08E0: 71      		MOV	M,C
+08E1: C0      		RNZ			;Return with Z flag reset
+08E2: 3E01    		MVI	A,001		;If not reset
+08E4: A7      		ANA	A		;Reset it and return
+08E5: C9      		RET
+08E6:         	DVD:
+08E6: A7      		ANA	A		;Divide the double
+08E7: 7A      		MOV	A,D		;Precision value
+08E8: 1F      		RAR			;By two by the number
+08E9: 57      		MOV	D,A		;Of times indicated
+08EA: 7B      		MOV	A,E		;In 'B'
+08EB: 1F      		RAR
+08EC: 5F      		MOV	E,A
+08ED: 05      		DCR	B		;Finished divide?
+08EE: C2E608  		JNZ	DVD		;No, continue
+08F1: C9      		RET			;Yes, return
+08F2:         	WASTE:
+08F2: CDD207  		CALL	ELOM		;Delete power from main
+08F5: 217904  		LXI	H,MSGNAS	;Print 'No A.S. Wasted shot'
+08F8: CD0005  		CALL	MSG
+08FB: C3100B  		JMP	CMND		;Input new command
+08FE:         	EIN:
+08FE: 216400  		LXI	H,0064H		;Set pointer to sign indicator
+0901: 74      		MOV	M,H		;Clear sign indicator
+0902: 2E63    		MVI	L,063H		;Pet pointer to input table
+0904: CD8B0F  		CALL	INPUT		;Input 1st character
+0907: FE2D    		CPI	'-'		;Negative sign?
+0909: C21209  		JNZ	EN2		;No, check digit
+090C: 2C      		INR	L		;Yes, advance pntr to sign ind.
+090D: 75      		MOV	M,L		;Set sign indicator to non-zero
+090E: 2D      		DCR	L		;Reset table pointer
+090F:         	EN1:
+090F: CD8B0F  		CALL	INPUT		;Input digit
+0912:         	EN2:
+0912: 77      		MOV	M,A   		;Save digit in table
+0913: CD6F06  		CALL	FNUM		;Valid digit?
+0916: F8      		RM			;No, return with S flag set
+0917: 7E      		MOV	A,M		;Yes, fetch digit
+0918: E60F    		ANI	00FH		;Mask off ASCII code
+091A: 77      		MOV	M,A		;Save binary value
+091B: 2D      		DCR	L		;Move table pointer
+091C: 3E5F    		MVI	A,05FH		;Is the table pointer
+091E: BD      		CMP	L		;Indicating table full?
+091F: C8      		RZ			;Yes, return with S flag set
+0920: C30F09  		JMP	EN1		;No, input more digits
+0923:         	DCBN:
+0923: 2E60    		MVI	L,060H		;Fetch unit's digit
+0925: 7E      		MOV	A,M
+0926: 2D      		DCR	L		;Move pointer to temp. storage
+0927: 74      		MOV	M,H		;Set temporary storage to
+0928: 2D      		DCR	L		;Value of units digit
+0929: 77      		MOV	M,A
+092A: 2E61    		MVI	L,061H		;Fetch ten's digit
+092C: 7E      		MOV	A,M
+092D: A7      		ANA	A		;Is ten's digit = 0;
+092E: CA3809  		JZ	DC1		;Yes, do 100's digit
+0931: 47      		MOV	B,A		;Save ten's digit
+0932: 1E0A    		MVI	E,00AH		;Set up binary value
+0934: 54      		MOV	D,H		;Of 10 in 'E' and 'D'
+0935: CD5A09  		CALL	TOBN		;Add 10 X digit
+0938:         	DC1:
+0938: 2E62    		MVI	L,062H		;Fetch 100's digit
+093A: 7E      		MOV	A,M
+093B: A7      		ANA	A		;Is 100's digit = 0?
+093C: CA4609  		JZ	DC2		;Yes, finish
+093F: 47      		MOV	B,A		;Save 100's digit
+0940: 116400  		LXI	D,064H		;Set up binary value
+0943: CD5A09  		CALL	TOBN		;Add 100 X digit
+0946:         	DC2:
+0946: 2E63    		MVI	L,063H		;Fetch 1000's digit
+0948: 7E      		MOV	A,M
+0949: A7      		ANA	A		;Is 1000's digit = 0?
+094A: CA5409  		JZ	DC3		;Yes, set bn val in 'E' & 'D'
+094D: 47      		MOV	B,A		;Save 1000's digit
+094E: 11E803  		LXI	D,03E8H		;Setup binary val of 1000 in 'E' and 'D'
+0951: CD5A09  		CALL	TOBN		;Add 1000 X digit
+0954:         	DC3:
+0954: 2E5E    		MVI	L,05EH		;Set pointer to binary value
+0956: 5E      		MOV	E,M		;Fetch least significant half
+0957: 2C      		INR	L
+0958: 56      		MOV	D,M		;Fetch most significant half
+0959: C9      		RET
+095A:         	TOBN:
+095A: 2E5E    		MVI	L,05EH
+095C: CD6609  		CALL	TO1
+095F: 05      		DCR	B
+0960: C8      		RZ
+0961: C35A09  		JMP	TOBN
+0964:         	TOMN:
+0964: 2E4F    		MVI	L,04FH		;Set pointer to main energy
+0966:         	TO1:
+0966: 7E      		MOV	A,M		;Fetch least significant half
+0967: 83      		ADD	E		;Add 'E'
+0968: 77      		MOV	M,A		;Save new least significant half
+0969: 2C      		INR	L		;Advance pntr. to most signif.
+096A: 7E      		MOV	A,M		;Fetch most significant half
+096B: 8A      		ADC	D		;Add 'D' with carry
+096C: 77      		MOV	M,A		;Save new most significant half
+096D: C9      		RET
+096E:         	TOSD:
+096E: 2E51    		MVI	L,051H		;Set pointer to shield energy
+0970: C36609  		JMP	TO1		;Add 'E' & 'D' to shield
+0973:         	FMMN:
+0973: 2E4F    		MVI	L,04FH		;Set pointer to main energy
+0975:         	FM1:
+0975: 7E      		MOV	A,M		;Fetch least significant half
+0976: 93      		SUB	E		;Subtract 'E'
+0977: 77      		MOV	M,A		;Save new least significant half
+0978: 2C      		INR	L		;Advance pntr. to most signif.
+0979: 7E      		MOV	A,M		;Fetch most significant half
+097A: 9A      		SBB	D		;Subtract 'D' with carry
+097B: 77      		MOV	M,A		;Save new most significant half
+097C: C9      		RET
+097D:         	FMSD:
+097D: 2E51    		MVI	L,051H		;Set pointer to shield energy
+097F: C37509  		JMP	FM1		;Subtr. 'E' & 'D' fm. shld ener.
+0982:         	CKMN:
+0982: 2E50    		MVI	L,050H		;Set pointer to main energy
+0984:         	CK1:
+0984: 7E      		MOV	A,M		;Fetch most significant half
+0985: 2D      		DCR	L		;Set pointer to least signif. half
+0986: BA      		CMP	D		;Is most significant half = 0?
+0987: C0      		RNZ			;No, return with flags set up
+0988:         	CK2:
+0988: 7E      		MOV	A,M		;If greater than or =, ret. with
+0989: BB      		CMP	E		;'C' flag reset, if less than
+098A: C9      		RET			;Return with 'C' flag set
+098B:         	CKSD:
+098B: 2E52    		MVI	L,052H		;Check shield energy level
+098D: C38409  		JMP	CK1		;Against requested level
+0990:         	OVER:
+0990: 21E204  		LXI	H,MSGCHK	;Print "CHICKEN"
+0993: CD0005  		CALL	MSG
+0996: 76      		HLT			;Halt
+              	
+0997:         	SPRC:
+0997: 7E      		MOV	A,M		;Fetch row and column
+0998: E607    		ANI	07H		;Separate column
+099A: 4F      		MOV	C,A		;Save column in 'C'
+099B: 7E      		MOV	A,M		;Fetch row
+099C: CDA305  		CALL	ROTR3		;Position row to right
+099F: E607    		ANI	07H		;Separate row
+09A1: 47      		MOV	B,A		;Save row in 'B'
+09A2: C9      		RET
+              	
+09A3:         	GALAXY:
+09A3: 31B70F  		LXI	SP,STACK	;Set stack pointer
+09A6: CDDE0F  		CALL	CONINI		;Initialize Console I/O
+09A9: 210001  		LXI	H,MSGDYW
+09AC: CD0005  		CALL	MSG		;Print introduction
+09AF:         	START:
+09AF: CD0A05  		CALL	RN		;Increment random number
+09B2: CD800F  		CALL	INPCK		;Input yet?
+09B5: F2AF09  		JP	START		;No, continue wait
+09B8: CD8B0F  		CALL	INPUT		;Input character
+09BB: FE4E    		CPI	'N'		;No, stop game?
+09BD: CA9009  		JZ	OVER		;Yes, vanish from galaxy
+09C0: 1EC0    		MVI	E,00C0H		;Set pointer to galaxy storage
+09C2:         	GLXSET:
+09C2: CD0A05  		CALL	RN		;Fetch random number
+09C5: E67F    		ANI	07FH
+09C7: 6F      		MOV	L,A
+09C8: 260F    		MVI	H,00FH		;Set pointer to galaxy table
+09CA: 7E      		MOV	A,M		;Fetch galaxy entry
+09CB: 6B      		MOV	L,E
+09CC: 2600    		MVI	H,000H		;Set pntr. to galaxy content tbl
+09CE: 77      		MOV	M,A		;Store quadrant contents
+09CF: 1C      		INR	E		;Galaxy storage complete?
+09D0: C2C209  		JNZ	GLXSET		;No, fetch more sectors
+09D3:         	GLXCK:
+09D3: 54      		MOV	D,H		;Space station count = 0;
+09D4: 4C      		MOV	C,H		;Alien ship count = 0;
+09D5: 2EC0    		MVI	L,0C0H		;Fetch quadrant contents
+09D7:         	GLXCK1:
+09D7: 7E      		MOV	A,M		;Fetch quadrant contents
+09D8: E608    		ANI	STNMSK		;Mask space station
+09DA: 82      		ADD	D		;Add to space station total
+09DB: 57      		MOV	D,A		;Save space station total
+09DC: 7E      		MOV	A,M		;Fetch quadrant contents
+09DD: E630    		ANI	ALNMSK		;Mask alien ship
+09DF: 0F      		RRC
+09E0: 0F      		RRC
+09E1: 81      		ADD	C		;Add to alien ship total
+09E2: 4F      		MOV	C,A		;Save alien ship total
+09E3: 2C      		INR	L		;End of galaxy storage?
+09E4: C2D709  		JNZ	GLXCK1		;No, continue adding
+09E7: 7A      		MOV	A,D		;Fetch space station total
+09E8: 0F      		RRC			;Position total to right
+09E9: 0F      		RRC
+09EA: 0F      		RRC
+09EB: 57      		MOV	D,A		;Save space station total
+09EC: FE07    		CPI	7		;Too many space stations?
+09EE: D21805  		JNC	SSPLS		;Yes, delete 1
+09F1: FE02    		CPI	2		;Too few space stations?
+09F3: DA1D05  		JC	SSMNS		;Yes, add 1 more
+09F6: 79      		MOV	A,C		;Fetch alien ship total
+09F7: 0F      		RRC
+09F8: 0F      		RRC
+09F9: 4F      		MOV	C,A		;Save alien ship total
+09FA: FE20    		CPI	32		;Too many alien ships?
+09FC: D22205  		JNC	ASPLS		;Yes, delete 1
+09FF: FE0A    		CPI	10		;Too few alien ships?
+0A01: DA3005  		JC	ASMNS		;Yes, add 1 more
+0A04: 2E5B    		MVI	L,05BH		;Set pntr to store number S.S.
+0A06: 72      		MOV	M,D		;Save number of space stations
+0A07: 2C      		INR	L		;Advance pntr to number A.S.
+0A08: 71      		MOV	M,C		;Save number of alien ships
+0A09: 79      		MOV	A,C
+0A0A: C605    		ADI	005
+0A0C: 2C      		INR	L		;Adv. pntr to nmbr of stardates
+0A0D: 77      		MOV	M,A		;Save number of stardates
+0A0E: 0601    		MVI	B,1		;Set nmbr bytes for BINDEC
+0A10: CD4B05  		CALL	BINDEC		;Covert stardate value
+0A13: 114E01  		LXI	D,MSGDTS	;Set pointer to digit storage
+0A16: 0602    		MVI	B,2		;Set counter to nmbr or digits
+0A18: CD3E05  		CALL	DIGPRT		;Put digits in message
+0A1B: 215C00  		LXI	H,005CH		;Set pointer to number A.S.
+0A1E: 0601    		MVI	B,001		;Set nmbr bytes for BINDEC
+0A20: CD4B05  		CALL	BINDEC		;Convert alien ship value
+0A23: 113C01  		LXI	D,MSGSPS	;Set pntr to digit stor. in start msg.
+0A26: 0602    		MVI	B,2		;Set counter to no. of digits
+0A28: CD3E05  		CALL	DIGPRT		;Put digits in message
+0A2B: 215B00  		LXI	H,005BH		;Set pointer to no. space stat.
+0A2E: 7E      		MOV	A,M		;Set no. bytes for BINDEC
+0A2F: F6B0    		ORI	0B0H		;Covert space station value
+0A31: 215F01  		LXI	H,MSGSSS	;Set pntr to digit stor. in start msg.
+0A34: 77      		MOV	M,A		;Set counter to no. of digits
+0A35: 212801  		LXI	H,MSGYJD	;Set pntr to start message
+0A38: CD0005  		CALL	MSG		;Print starting message
+0A3B: CD0A05  		CALL	RN		;Fresh start quadrant
+0A3E: E63F    		ANI	03FH		;Mask off most significant bits
+0A40: 2E59    		MVI	L,059H		;Set pntr. to quadrant storage
+0A42: 77      		MOV	M,A		;Save quadrant location
+0A43: CD5108  		CALL	QCNT		;Fetch current quad. contents
+0A46: CD9205  		CALL	LOAD		;set initial conditions
+0A49: CD1607  		CALL	NWQD		;Set quad. contents location
+0A4C: 0E01    		MVI	C,1		;Set space ship counter
+0A4E: 1E43    		MVI	E,043H		;Set space ship loc. storage
+0A50: CDA705  		CALL	LOCSET		;Set initial space ship location
+0A53:         	SRSCN:
+0A53: 217001  		LXI	H,MSG123	;Set pntr. for short range scan
+0A56: CD0005  		CALL	MSG		;Print initial row
+0A59: 0E01    		MVI	C,1		;Set row number
+0A5B: CDBB05  		CALL	ROWSET		;Set up row for printout
+0A5E: 215D00  		LXI	H,005DH		;Set pointer to stardate
+0A61: 3E32    		MVI	A,032H
+0A63: 96      		SUB	M		;Calculate number used
+0A64: 2C      		INR	L		;Adv pntr to temporary storage
+0A65: 77      		MOV	M,A		;Save nmber used
+0A66: 0601    		MVI	B,1		;Set no. bytes for BINDEC
+0A68: CD4B05  		CALL	BINDEC		;Covert to current stardate
+0A6B: 11B601  		LXI	D,MSGSDP	;Set pointer to stardate msg.
+0A6E: 0602    		MVI	B,2		;Set counter to no. of digits
+0A70: CD3E05  		CALL	DIGPRT		;Put digits in stardate message
+0A73: 21A801  		LXI	H,MSGSTDT3	;Set pointer to message
+0A76: CD0005  		CALL	MSG		;Print stardate message
+0A79: 0E02    		MVI	C,2		;Set row number 2
+0A7B: CDBB05  		CALL	ROWSET		;Set up row for printout
+0A7E: 2E42    		MVI	L,042H		;Set pntr to current quadrant
+0A80: 7E      		MOV	A,M		;Fetch current contents
+0A81: 21C301  		LXI	H,MSGGRN	;Set pointer to condition msg
+0A84: E630    		ANI	030H		;Alien ship in quadrant?
+0A86: C23E06  		JNZ	RED		;Yes, condition "RED"
+0A89: 3647    		MVI	M,'G'		;Condition "GREEN"
+0A8B: 2C      		INR	L
+0A8C: 3652    		MVI	M,'R'
+0A8E: 2C      		INR	L
+0A8F: 3645    		MVI	M,'E'
+0A91: 2C      		INR	L
+0A92: 3645    		MVI	M,'E'
+0A94: 2C      		INR	L
+0A95: 364E    		MVI	M,'N'
+0A97:         	CND:
+0A97: 21B801  		LXI	H,MSGCND	;Set pointer to condition msg
+0A9A: CD0005  		CALL	MSG		;Print condition message
+0A9D: 0E03    		MVI	C,3		;Set row number 3
+0A9F: CDBB05  		CALL	ROWSET		;Set up row to printout
+0AA2: CD4C06  		CALL	QUAD		;Print current quadrant
+0AA5: 0E04    		MVI	C,4		;Set row number 4
+0AA7: CDBB05  		CALL	ROWSET		;Set up row for printout
+0AAA: 2E43    		MVI	L,043H		;Pointer to current sector
+0AAC: 1EE3    		MVI	E,0E3H		;Set digit storage
+0AAE: 14      		INR	D
+0AAF: CD5B06  		CALL	TWO		;Put two digits in message
+0AB2: 2ED8    		MVI	L,0D8H		;Set pointer to sector message
+0AB4: CD0005  		CALL	MSG		;Print sector message
+0AB7: 0E05    		MVI	C,5		;Set row number 5
+0AB9: CDBB05  		CALL	ROWSET		;Set up row for printout
+0ABC: 2E4F    		MVI	L,04FH		;Set pointer to energy storage
+0ABE: 0602    		MVI	B,2		;Number of bytes for BINDEC
+0AC0: CD4B05  		CALL	BINDEC		;Covert to energy stored
+0AC3: 11F501  		LXI	D,MSGENP	;Set pointer to energy message
+0AC6: 0604    		MVI	B,4		;Set counter to no. of digits
+0AC8: CD3E05  		CALL	DIGPRT		;Put digits in message
+0ACB: 21E701  		LXI	H,MSGENR	;Set pointer to energy message
+0ACE: CD0005  		CALL	MSG		;Print current energy message
+0AD1: 0E06    		MVI	C,6		;Set row number 6
+0AD3: CDBB05  		CALL	ROWSET		;Set up row for printout
+0AD6: 2E5A    		MVI	L,05AH		;Set point to no. torpedoes
+0AD8: 0601    		MVI	B,1		;Number of bytes for BINDEC
+0ADA: CD4B05  		CALL	BINDEC		;Covert number of torpedoes
+0ADD: 110302  		LXI	D,MSGTPP	;Set pointer to torpedo message
+0AE0: 0602    		MVI	B,2		;Set counter to no. of digits
+0AE2: CD3E05  		CALL	DIGPRT		;Put no. torpedoes in message
+0AE5: 21F701  		LXI	H,MSGTRP	;Set pointer to torpedo msg
+0AE8: CD0005  		CALL	MSG		;Print torpedo message
+0AEB: 0E07    		MVI	C,7		;Set row number 7
+0AED: CDBB05  		CALL	ROWSET		;Set up row for printout
+0AF0: 2E51    		MVI	L,051H		;Set pointer to shield energy
+0AF2: 0602    		MVI	B,2		;Number of bytes for BINDEC
+0AF4: CD4B05  		CALL	BINDEC		;Convert shield energy
+0AF7: 111302  		LXI	D,MSGSHP	;Set pointer to shield message
+0AFA: 0604    		MVI	B,4		;Set counter for no. of digits
+0AFC: CD3E05  		CALL	DIGPRT		;Put shield energy in message
+0AFF: 210502  		LXI	H,MSGSHD	;Set pointer to shield message
+0B02: CD0005  		CALL	MSG		;Print shield message
+0B05: 0E08    		MVI	C,8H		;Set row number 8
+0B07: CDBB05  		CALL	ROWSET		;Set up row for printout
+0B0A: 217001  		LXI	H,MSG123	;Set pointer to final row
+0B0D: CD0005  		CALL	MSG		;Print final row of S.R. scan
+0B10:         	CMND:
+0B10: 2600    		MVI	H,000
+0B12: 31B70F  		LXI	SP,STACK	;Reset stack pointer
+0B15: 1E0A    		MVI	E,10		;Delete 10 units of
+0B17: 54      		MOV	D,H		;Energy for each command
+0B18: CDD207  		CALL	ELOM
+0B1B: 2E41    		MVI	L,041H		;Set pointer to random number
+0B1D: 34      		INR	M		;Fetch random nmbr. constant
+0B1E:         	CMD:
+0B1E: 211502  		LXI	H,MSGCMD	;Set pointer to command msg
+0B21: CD0708  		CALL	CMSG		;Request command input
+0B24: CD8B0F  		CALL	INPUT		;Input command
+0B27: FE30    		CPI	'0'		;Ship movement?
+0B29: CAAA0B  		JZ	CRSE		;Yes, input course
+0B2C: FE31    		CPI	'1'		;Short range scan?
+0B2E: CA530A  		JZ	SRSCN		;Yes, print short range scan
+0B31: FE32    		CPI	'2'		;Long range scan?
+0B33: CA4D0B  		JZ	LRSCN		;Yes, print long range scan
+0B36: FE33    		CPI	'3'		;Galaxy printout?
+0B38: CA3A0E  		JZ	GXPRT		;Yes, print galaxy
+0B3B: FE34    		CPI	'4'		;Shield energy?
+0B3D: CA9B0C  		JZ	SHEN		;Yes, adjust shield energy
+0B40: FE35    		CPI	'5'		;Phasor control?
+0B42: CA6C0D  		JZ	PHSR		;Yes, fire phasers
+0B45: FE36    		CPI	'6'		;Torpedo shot?
+0B47: CAD80C  		JZ	TRPD		;Yes, shoot torpedo
+0B4A: C31E0B  		JMP	CMD		;Illegal command, try again
+0B4D:         	LRSCN:
+0B4D: 214D02  		LXI	H,MSGLRS	;Set pntr to long range msg
+0B50: CD0005  		CALL	MSG		;Print long range scan
+0B53: CD4C06  		CALL	QUAD		;Print quadrant location
+0B56: CD7806  		CALL	NTN		;Print row of dashes
+0B59: 2E59    		MVI	L,059H		;Pointer to current quadrant
+0B5B: 7E      		MOV	A,M		;Fetch current quadrant
+0B5C: E638    		ANI	038H		;Current quadrant in row 1?
+0B5E: CA860B  		JZ	RWC1		;Yes, top row clear
+0B61: 7E      		MOV	A,M		;No, set up quadrant to
+0B62: D608    		SUI	008H		;Indicate row - 1
+0B64: CD8E06  		CALL	LRR		;Set & print top row
+0B67:         	LR1:
+0B67: CD7806  		CALL	NTN		;Print separating row
+0B6A: 2E59    		MVI	L,059H		;Set pointer to current quad.
+0B6C: 7E      		MOV	A,M		;Fetch current quadrant
+0B6D: CD8E06  		CALL	LRR		;Set & print middle row
+0B70: CD7806  		CALL	NTN		;Print separating row
+0B73: 2E59    		MVI	L,059H		;Set pointer to current quad.
+0B75: 7E      		MOV	A,M		;Fetch current quadrant
+0B76: FE38    		CPI	038H		;Current quadrant in row 8?
+0B78: D28C0B  		JNC	RWC2		;Yes, bottom row clear
+0B7B: C608    		ADI	008H		;No, set quadrant to row + 1
+0B7D: CD8E06  		CALL	LRR		;Set & print bottow row
+0B80:         	LR2:
+0B80: CD7806  		CALL	NTN		;Print separating row
+0B83: C3100B  		JMP	CMND		;Input next command
+0B86:         	RWC1:
+0B86: CD920B  		CALL	RWC		;Print clear row
+0B89: C3670B  		JMP	LR1		;Continue long range scan
+0B8C:         	RWC2:
+0B8C: CD920B  		CALL	RWC		;Print clear row
+0B8F: C3800B  		JMP	LR2		;Finish long range scan
+0B92:         	RWC:
+0B92: 21C904  		LXI	H,MSG11A	;Set pointer to left quadrant
+0B95: AF      		XRA	A		;Set zero entry
+0B96: CDC606  		CALL	QDS1		;Set quadrant contents
+0B99: 21CF04  		LXI	H,MSG11B	;Set pointer to middle quad.
+0B9C: AF      		XRA	A		;Set zero entry
+0B9D: CDC606  		CALL	QDS1		;Set quadrant contents
+0BA0: 21D504  		LXI	H,MSG11C	;Set pointer to right quadrant
+0BA3: AF      		XRA	A		;Set zero contents
+0BA4: CDC606  		CALL	QDS1		;Set quadrant contents
+0BA7: C3C006  		JMP	LRP		;Pring long range row
+0BAA:         	CRSE:
+0BAA: 212002  		LXI	H,MSGCRS	;Pointer to "Course" message
+0BAD: CD0005  	 	CALL	MSG		;Request course input
+0BB0: CD1E08  	 	CALL	DRCT		;Input course direction
+0BB3: CAAA0B  		JZ	CRSE		;Input error, try again
+0BB6:         	WRP:
+0BB6: 213302  		LXI	H,MSGWRP	;Pointer to "Warp" message
+0BB9: CD0708  	 	CALL	CMSG		;Request warp input
+0BBC: 2E5F    		MVI	L,05FH		;Set pntr. to temporary storage
+0BBE: CD8B0F  	 	CALL	INPUT		;Input warp factor number 1
+0BC1: FE30    		CPI	'0'		;Is digit less than 0?
+0BC3: DAB60B  		JC	WRP		;No, request input again
+0BC6: FE38    		CPI	'8'		;Is input greater than 7?
+0BC8: D2B60B  		JNC	WRP		;Yes, try again
+0BCB: E607    		ANI	007		;Mask off ASCII code
+0BCD: 07      		RLC			;Position to 3rd bit
+0BCE: 07      		RLC
+0BCF: 07      		RLC
+0BD0: 77      		MOV	M,A		;Save in temporary storage
+0BD1: 3E2E    		MVI	A,'.'		;Print decimal point
+0BD3: CD8F0F  	 	CALL	PRINT
+0BD6: CD8B0F  	 	CALL	INPUT		;Input 2nd warp factor number
+0BD9: FE30    		CPI	'0'		;Is digit less than 0?
+0BDB: DAB60B  		JC	WRP		;Yes, no good
+0BDE: FE38    		CPI	'8'		;Is digit greater than 7
+0BE0: D2B60B  		JNC	WRP		;Yes, no good
+0BE3: E607    		ANI	007		;Mask off ASCII code
+0BE5: 86      		ADD	M		;Add warp digit number 1
+0BE6: CAB60B  		JZ	WRP		;If 0, no good
+0BE9: 5F      		MOV	E,A		;Save warp factor in 'E'
+0BEA: CD5D08  		CALL	ACTV		;Fetch adjusted row & column
+0BED: 2E31    		MVI	L,031H		;Set pntr to crossing indicator
+0BEF: 74      		MOV	M,H		;Clear crossing indicator
+0BF0:         	MOVE:
+0BF0: CD7508  		CALL	TRK		;Track 1 sector
+0BF3: CA0407  		JZ	LOST		;Out of galaxy? Yes, lost
+0BF6: 2E30    		MVI	L,030H		;Fetch crossing flag
+0BF8: 7E      		MOV	A,M
+0BF9: A7      		ANA	A		;Quadrant crossed?
+0BFA: CA0B0C  		JZ	CLSN		;No, check collision
+0BFD: 2C      		INR	L		;Advance to crossing indicator
+0BFE: 75      		MOV	M,L		;Set crossing indicator to non-0
+0BFF: 1E19    		MVI	E,25		;Delete 25 units of
+0C01: 54      		MOV	D,H		;Energy from main supply
+0C02: CDD207  		CALL	ELOM
+0C05: CD5108  		CALL	QCNT		;Fetch new quadrant contents
+0C08: CD1607  		CALL	NWQD		;Set up new quadrant
+0C0B:         	CLSN:
+0C0B: CDEB06  		CALL	RWCM		;Form rwo and column byte
+0C0E: CD6207  		CALL	MATCH		;Collision?
+0C11: C2250C  		JNZ	MVDN		;No, complete move
+0C14: 45      		MOV	B,L		;Yes, save object location
+0C15: 78      		MOV	A,B		;Set flags to determine
+0C16: FE4B    		CPI	04BH		;What was hit
+0C18: 2E31    		MVI	L,031H		;Pointer to crossing indicator
+0C1A: 7E      		MOV	A,M		;Fetch crossing indicator
+0C1B: CA520C  		JZ	SSOUT		;Space station collision
+0C1E: D2630C  		JNC	ASOUT		;Alient ship collision
+0C21: A7      		ANA	A		;Star, initial quadrant?
+0C22: CA0A07  		JZ	WPOUT		;Yes, ship wiped out
+0C25:         	MVDN:
+0C25: 212800  		LXI	H,0028H		;Restore registers 'E' 'D' & 'C'
+0C28: 5E      		MOV	E,M
+0C29: 2C      		INR	L
+0C2A: 56      		MOV	D,M
+0C2B: 2C      		INR	L
+0C2C: 4E      		MOV	C,M
+0C2D: 1D      		DCR	E		;Decrement warp factor
+0C2E: C2F00B  		JNZ	MOVE		;Not 0, continue move
+0C31: 2E31    		MVI	L,031H		;Fetch crossing indicator
+0C33: 7E      		MOV	A,M
+0C34: A7      		ANA	A		;Quadrant crossing occurred?
+0C35: CA400C  		JZ	NOX		;No, complete move
+0C38: 2E5D    		MVI	L,05DH		;Yes, fetch stardate
+0C3A: 46      		MOV	B,M
+0C3B: 05      		DCR	B		;Decrement stardate counter
+0C3C: CAFB06  		JZ	TIME		;If 0, end of game
+0C3F: 70      		MOV	M,B		;Else save new date
+0C40:         	NOX:
+0C40: CDEB06  		CALL	RWCM		;Form row and column byte
+0C43: 2E43    		MVI	L,043H		;Set pointer to current sector
+0C45: 70      		MOV	M,B		;Save new sector
+0C46: CD6207  		CALL	MATCH		;Last move a collision?
+0C49: CC710C  		CZ	CHNG		;Yes, change object location
+0C4C: CD770C  		CALL	DKED		;Check for docking
+0C4F: C3530A  		JMP	SRSCN		;Do short range scan
+0C52:         	SSOUT:
+0C52: A7      		ANA	A		;Initial quadrant?
+0C53: C2250C  		JNZ	MVDN		;No, no loss
+0C56: 68      		MOV	L,B		;Yes, set object pointer
+0C57: CDEA07  		CALL	DLET		;Remove space station fm glxy
+0C5A: 115802  		LXI	D,600		;Then delete 600 units of engy from S.S.
+0C5D:         	SSO1:
+0C5D: CD8307  		CALL	ELOS		;Delete energy
+0C60: C3250C  		JMP	MVDN		;Finish move
+0C63:         	ASOUT:
+0C63: A7      		ANA	A		;Initial quadrant?
+0C64: C2250C  		JNZ	MVDN		;No, no loss
+0C67: 68      		MOV	L,B		;Yes, delete alien ship
+0C68: CDEA07  		CALL	DLET
+0C6B: 11DC05  		LXI	D,1500		;Delete 1500 units of engy. from S.S.
+0C6E: C35D0C  		JMP	SSO1		;And finish move
+0C71:         	CHNG:
+0C71: 5D      		MOV	E,L		;Set table location and
+0C72: 0E01    		MVI	C,1		;Number of objects counter for
+0C74: C3A705  		JMP	LOCSET		;Move object and return
+0C77:         	DKED:
+0C77: 2E4B    		MVI	L,04BH		;Fetch space station byte
+0C79: 7E      		MOV	A,M
+0C7A: A7      		ANA	A		;Space station in quadrant?
+0C7B: F8      		RM			;No, return
+0C7C: 78      		MOV	A,B		;Fetch space ship location
+0C7D: E638    		ANI	ROWMSK		;Separate row location
+0C7F: 4F      		MOV	C,A		;Save in 'C'
+0C80: 78      		MOV	A,B		;Fetch space ship location
+0C81: E607    		ANI	COLMSK		;Separate column location
+0C83: 47      		MOV	B,A		;Save in 'B'
+0C84: 7E      		MOV	A,M		;Fetch space station location
+0C85: E607    		ANI	COLMSK		;Separate space station clmn loc
+0C87: 5F      		MOV	E,A		;Save in 'E'
+0C88: 7E      		MOV	A,M		;Fetch space station location
+0C89: E638    		ANI	ROWMSK		;Separate row as space ship
+0C8B: B9      		CMP	C		;Same row and space ship?
+0C8C: C0      		RNZ			;No, return
+0C8D: 78      		MOV	A,B		;Fetch space ship column
+0C8E: C601    		ADI	1		;Advance one column
+0C90: BB      		CMP	E		;Space ship adjacent?
+0C91: CA9205  		JZ	LOAD		;Yes, load up space ship
+0C94: D602    		SUI	2		;No, try column to left
+0C96: BB      		CMP	E		;Space station adjacent
+0C97: C0      		RNZ			;No, return
+0C98: C39205  		JMP	LOAD		;Yes, load space ship & return
+0C9B:         	SHEN:
+0C9B: 213003  		LXI	H,MSGSET	;Print "Shield Energy
+0C9E: CD0005  		CALL	MSG		;       Transfer =  "
+0CA1: CDFE08  		CALL	EIN		;Input energy amount
+0CA4: FA9B0C  		JM	SHEN		;Invalid input, try again
+0CA7: CD2309  		CALL	DCBN		;Convert to binary
+0CAA: 2E64    		MVI	L,064H		;Fetch sign indicator
+0CAC: 7E      		MOV	A,M
+0CAD: A7      		ANA	A		;Is sign positive
+0CAE: CAC00C  		JZ	POS		;Yes, from main to shield
+0CB1: CD8B09  		CALL	CKSD		;No, check shield energy
+0CB4: DACF0C  		JC	NE		;If shield less than req, no good
+0CB7: CD7D09  		CALL	FMSD		;Subtract from shield
+0CBA: CD6409  		CALL	TOMN		;Add to main
+0CBD: C3100B  		JMP	CMND		;Input new command
+0CC0:         	POS:
+0CC0: CD8209  		CALL	CKMN		;Check main energy
+0CC3: DACF0C  		JC	NE		;If main less than req, no good
+0CC6: CD7309  		CALL	FMMN		;Subtract from main
+0CC9: CD6E09  		CALL	TOSD		;Add to shield energy
+0CCC: C3100B  		JMP	CMND		;Input new command
+0CCF:         	NE:
+0CCF: 214C03  		LXI	H,MSGNEE	;Print "Not Enough Energy"
+0CD2: CD0005  		CALL	MSG
+0CD5: C3100B  		JMP	CMND		;Input new command
+0CD8:         	TRPD:
+0CD8: 2E5A    		MVI	L,05AH		;Fetch number of torpedoes
+0CDA: 7E      		MOV	A,M
+0CDB: A7      		ANA	A		;Any torpedoes left?
+0CDC: CA630D  		JZ	NTPD		;No, print no torpedo message
+0CDF: 1EFA    		MVI	E,250		;Set up 250 units
+0CE1: 54      		MOV	D,H		;Of energy to delete
+0CE2: CD8209  		CALL	CKMN		;Enough in main supply?
+0CE5: DACF0C  		JC	NE		;No, report not enough
+0CE8: CD7309  		CALL	FMMN		;Yes, delete from main
+0CEB: 2E5A    		MVI	L,05AH
+0CED: 35      		DCR	M		;Remove one torpedo
+0CEE:         	TR1:
+0CEE: 216003  		LXI	H,MSGTTY	;Print "Torpedo Trajectory"
+0CF1: CD0005  		CALL	MSG
+0CF4: CD1E08  		CALL	DRCT		;Input direction
+0CF7: CAEE0C  		JZ	TR1		;Invalid input, try again
+0CFA: CD5D08  		CALL	ACTV		;Form adjusted row & column
+0CFD: 2E59    		MVI	L,059H		;Save current quadrant location
+0CFF: 7E      		MOV	A,M		;In temporary storage
+0D00: 2E2B    		MVI	L,02BH
+0D02: 77      		MOV	M,A
+0D03:         	TR2:
+0D03: CD7508  		CALL	TRK		;Move torpedo one sector
+0D06: CA4E0D  		JZ	QOUT		;Out of quadrant? Missed
+0D09: 2E30    		MVI	L,030H		;Fetch crossing flag
+0D0B: 7E      		MOV	A,M
+0D0C: A7      		ANA	A		;Crossed quadrant
+0D0D: C24E0D  		JNZ	QOUT		;Yes, missed
+0D10: CDEB06  		CALL	RWCM		;No, form row and column
+0D13: 48      		MOV	C,B		;Save row and column byte
+0D14: 211E04  		LXI	H,MSGTRK	;Set up tracking message by inserting
+0D17: CD5E06  		CALL	T1		;Row and column in message
+0D1A: 2E12    		MVI	L,012H		;Set pointer to message
+0D1C: CD0708  		CALL	CMSG		;Print 'Tracking: R,C'
+0D1F: 41      		MOV	B,C		;Fetch row and column byte
+0D20: CD6207  		CALL	MATCH		;Torpedo hit anything?
+0D23: CA300D  		JZ	HIT		;Yes, analyze
+0D26: 2E28    		MVI	L,028H		;No, restore registers
+0D28: 5E      		MOV	E,M
+0D29: 2C      		INR	L
+0D2A: 56      		MOV	D,M
+0D2B: 2C      		INR	L
+0D2C: 4E      		MOV	C,M
+0D2D: C3030D  		JMP	TR2		;Continue tracking
+0D30:         	HIT:
+0D30: 7D      		MOV	A,L		;What was hit?
+0D31: FE4B    		CPI	04BH		;Was it a star?
+0D33: DA4E0D  		JC	QOUT		;Yes, missed alien ship
+0D36: CA450D  		JZ	SSTA		;Space stat.? Yes, delete S.S.
+0D39: CDEA07  		CALL	DLET		;No, delete alient ship
+0D3C: 217F03  		LXI	H,MSGASD	;Print alien ship hit message
+0D3F: CD0005  		CALL	MSG
+0D42: C3100B  		JMP	CMND		;Input new command
+0D45:         	SSTA:
+0D45: CDEA07  		CALL	DLET		;Delete space station fm galaxy
+0D48: 21BA03  		LXI	H,MSGSSD	;Print message of loss
+0D4B: CD0005  		CALL	MSG		;Space station
+0D4E:         	QOUT:
+0D4E: 219603  		LXI	H,MSGYMA	;Print missed message
+0D51: CD0708  		CALL	CMSG
+0D54: 1EC8    		MVI	E,200		;Set up loss of 200
+0D56: 54      		MOV	D,H		;Units due to alien ship
+0D57: CD8307  		CALL	ELOS		;Rtaliating
+0D5A: 2E2B    		MVI	L,02BH		;Restore current quadrant
+0D5C: 7E      		MOV	A,M		;Location
+0D5D: 2E59    		MVI	L,059H
+0D5F: 77      		MOV	M,A
+0D60: C3100B  		JMP	CMND		;Input new command
+0D63:         	NTPD:
+0D63: 219604  		LXI	H,MSGZRO	;Set pointer to No Torpedo message
+0D66: CD0005  		CALL	MSG		;Print message
+0D69: C3100B  		JMP	CMND		;Jump to input command
+0D6C:         	PHSR:
+0D6C: 213304  		LXI	H,MSGPEF	;Print 'Phasor Energy to Fire='
+0D6F: CD0005  		CALL	MSG
+0D72: CDFE08  		CALL	EIN		;Input energy amount
+0D75: FA6C0D  		JM	PHSR		;Input error, try again
+0D78: CD2309  		CALL	DCBN		;Convert energy to binary
+0D7B: CDD207  		CALL	ELOM		;Delete energy from main
+0D7E: 2E42    		MVI	L,042H		;Fetch current quad. contents
+0D80: 7E      		MOV	A,M
+0D81: E630    		ANI	030H		;Any alien ships?
+0D83: CAF208  		JZ	WASTE		;No, waste of energy
+0D86: CDA205  		CALL	ROTR4		;Position number of alien ship
+0D89: D601    		SUI	001		;1 alien ship, full energy
+0D8B: CA920D  		JZ	PH1		;2 alien ships, half energy
+0D8E: 47      		MOV	B,A		;3 alien ships, quarter energy
+0D8F: CDE608  		CALL	DVD
+0D92:         	PH1:
+0D92: 2E5E    		MVI	L,05EH		;Set pointer to energy storage
+0D94: 73      		MOV	M,E		;Save energy amount
+0D95: 2C      		INR	L
+0D96: 72      		MOV	M,D
+0D97: 2E28    		MVI	L,028H		;Save energy in temp. storage
+0D99: 73      		MOV	M,E
+0D9A: 2C      		INR	L
+0D9B: 72      		MOV	M,D
+0D9C: 2C      		INR	L		;Save loc. of alien ship in table
+0D9D: 364C    		MVI	M,04CH
+0D9F: CDB30D  		CALL	ASPH		;Calc. phsr dmg to A.S. No. 1
+0DA2: 2E2A    		MVI	L,02AH		;Set pntr to A.S. loc. storage
+0DA4: 364D    		MVI	M,04DH		;Save location of A.S. in table
+0DA6: CDB30D  		CALL	ASPH		;Calc. phsr dmg to A.S. No. 2
+0DA9: 2E2A    		MVI	L,02AH		;Set pntr to A.S. loc. storage
+0DAB: 364E    		MVI	M,04EH		;Save location of 3rd alien ship
+0DAD: CDB30D  		CALL	ASPH		;Calc. phsr dmg to A.S. No. 3
+0DB0: C3100B  		JMP	CMND		;Input new command
+0DB3:         	ASPH:
+0DB3: 6E      		MOV	L,M		;Set pntr to alient ship table
+0DB4: 7E      		MOV	A,M		;Fetch alien ship location
+0DB5: A7      		ANA	A		;Alien ship in this location?
+0DB6: F8      		RM			;No, return
+0DB7: 116504  		LXI	D,MSGSEC	;Set pointer to sector Storage in msg
+0DBA: CD5B06  		CALL	TWO		;set sector coordinates
+0DBD: 2E4E    		MVI	L,04EH		;Print 'A.S. at sector X,Y:'
+0DBF: CD0708  		CALL	CMSG
+0DC2: 2E43    		MVI	L,043H		;Fetch space ship location
+0DC4: CD9709  		CALL	SPRC		;Separate row and column
+0DC7: 6B      		MOV	L,E		;Save space ship row & column
+0DC8: 62      		MOV	H,D
+0DC9: 59      		MOV	E,C
+0DCA: 50      		MOV	D,B
+0DCB: CD9709  		CALL	SPRC		;Separate A.S. row & column
+0DCE: 78      		MOV	A,B		;Fetch alien ship row
+0DCF: 92      		SUB	D		;Subract space ship row
+0DD0: F2D70D  		JP	PH2		;To calculate distance between
+0DD3: EEFF    		XRI	0FFH		;Alien ship and space ship
+0DD5: C601    		ADI	001
+0DD7:         	PH2:
+0DD7: 47      		MOV	B,A		;Save row distance
+0DD8: 79      		MOV	A,C		;Fetch alien ship column
+0DD9: 93      		SUB	E		;Subtract space ship column
+0DDA: F2E10D  		JP	PH3		;To calcualate column distance
+0DDD: EEFF    		XRI	0FFH		;Between A. ship & S. ship
+0DDF: C601    		ADI	001
+0DE1:         	PH3:
+0DE1: 80      		ADD	B		;Add row distance
+0DE2: 0F      		RRC			;Form distance factor
+0DE3: 0F      		RRC			;To be used to calculate
+0DE4: E603    		ANI	003		;Energy that reaches alien ship
+0DE6: 47      		MOV	B,A		;Save in 'B'
+0DE7: 4D      		MOV	C,L		;Save pointer in 'C'
+0DE8: 2E28    		MVI	L,028H		;Fetch phasor energy
+0DEA: 5E      		MOV	E,M
+0DEB: 2C      		INR	L
+0DEC: 56      		MOV	D,M
+0DED: 05      		DCR	B		;Divide energy by
+0DEE: 04      		INR	B
+0DEF: C4E608  		CNZ	DVD		;Distance factor
+0DF2: 79      		MOV	A,C		;Fetch table pointer
+0DF3: E603    		ANI	003
+0DF5: 07      		RLC			;And set pointer to alien ship
+0DF6: C653    		ADI	053H		;Energy storage
+0DF8: 2E2B    		MVI	L,02BH		;Save energy pointer
+0DFA: 77      		MOV	M,A
+0DFB: 6F      		MOV	L,A		;Set pntr. to alien ship energy
+0DFC: CD7509  		CALL	FM1		;Delete energy fm alien ship
+0DFF: FA2E0E  		JM	DSTR		;If negative, A. ship destroyed
+0E02: C20C0E  		JNZ	ALOS		;If non-0, print A. ship energy
+0E05: 2D      		DCR	L		;Check 2nd have of alien ship
+0E06: 7E      		MOV	A,M		;Energy to see if zero.
+0E07: 2C      		INR	L
+0E08: A7      		ANA	A		;Alien ship energy = 0?
+0E09: CA2E0E  		JZ	DSTR		;Yes, remove from galaxy
+0E0C:         	ALOS:
+0E0C: 2D      		DCR	L		;Set pntr to alien ship energy
+0E0D: 0602    		MVI	B,2		;Set number for BINDEC
+0E0F: CD4B05  		CALL	BINDEC		;Convert A.S. energy to decimal
+0E12: 117704  		LXI	D,MSGDEY
+0E15: 0604    		MVI	B,4		;Set number of digits
+0E17: CD3E05  		CALL	DIGPRT		;Put energy in message
+0E1A: 216B04  		LXI	H,MSGEGY	;Print energy of alien ship
+0E1D: CD0708  		CALL	CMSG
+0E20: 2E2B    		MVI	L,02BH		;Fetch alien ship energy
+0E22: 6E      		MOV	L,M
+0E23: 5E      		MOV	E,M		;Fetch alien ship energy
+0E24: 2C      		INR	L
+0E25: 56      		MOV	D,M
+0E26: 0602    		MVI	B,2		;Divide alien ship energy
+0E28: CDE608  		CALL	DVD		;By 4 as retaliation by A.S.
+0E2B: C38307  		JMP	ELOS		;Remove fm shield nrgy & ret
+0E2E:         	DSTR:
+0E2E: 21CA03  		LXI	H,MSGDES	;Print "Destroyed"
+0E31: CD0708  		CALL	CMSG
+0E34: 2E2A    		MVI	L,02AH		;Fetch alient ship location in tbl
+0E36: 6E      		MOV	L,M
+0E37: C3EA07  		JMP	DLET		;Remove A.S. fm glxy & ret
+0E3A:         	GXPRT:
+0E3A: 212204  		LXI	H,MSGGDY	;Print galaxy display
+0E3D: CD0005  		CALL	MSG
+0E40: 2631    		MVI	H,031H
+0E42: CD7A06  	 	CALL	NT1		;Print border
+0E45: 2EC0    		MVI	L,0C0H		;Set pointer to galaxy
+0E47:         	GL1:
+0E47: 54      		MOV	D,H		;Set printout pointer
+0E48: 1E84    		MVI	E,084H
+0E4A:         	GL2:
+0E4A: 7E      		MOV	A,M		;Fetch quadrant contents
+0E4B: EB      		XCHG
+0E4C: CDC806  		CALL	QDSET		;Set quad. contents in message
+0E4F: 7D      		MOV	A,L		;Fetch message pointer
+0E50: C604    		ADI	004		;Advance to next quad. in msg
+0E52: 6F      		MOV	L,A
+0E53: EB      		XCHG			;Set galaxy pointer
+0E54: 2C      		INR	L		;Advance to next quad. in glxy
+0E55: FEB4    		CPI	0B4H		;This end of line?
+0E57: C24A0E  		JNZ	GL2		;No, set next quad. in msg
+0E5A: EB      		XCHG			;Save galaxy pointer
+0E5B: 2E80    		MVI	L,080H		;Print current line of galaxy
+0E5D: CD0005  		CALL	MSG
+0E60: 2631    		MVI	H,031H
+0E62: CD7A06  		CALL	NT1		;Print dividing line
+0E65: 7B      		MOV	A,E		;Fetch galaxy pointer
+0E66: BC      		CMP	H		;End of galaxy printed? =0?
+0E67: CA100B  		JZ	CMND		;Yes, return command input
+0E6A: EB      		XCHG			;No, set up galaxy pointer
+0E6B: C3470E  		JMP	GL1		;Continue printout
+              	
+0E6E: FFFFFFFF		ORG	0F00H
+0E72: FF...   	
+              	
+0F00: 00010423		DB	000000000b,000000001b,000000100b,000100011b,000001010b,000000011b,000000111b,000000000b
+0F04: 0A030700	
+0F08: 001A2305		DB	000000000b,000011010b,000100011b,000000101b,000000011b,000010100b,000010110b,000010010b
+0F0C: 03141612	
+0F10: 00000000		DB	000000000b,000000000b,000000000b,000000000b,000000000b,000000101b,000000100b,000010111b
+0F14: 00050417	
+0F18: 05011400		DB	000000101b,000000001b,000010100b,000000000b,000000000b,000000100b,000000101b,000000000b
+0F1C: 00040500	
+0F20: 07021109		DB	000000111b,000000010b,000010001b,000001001b,000000000b,000000100b,000000000b,000000000b
+0F24: 00040000	
+0F28: 23000224		DB	000100011b,000000000b,000000010b,000100100b,000000000b,000000000b,000000011b,000000111b
+0F2C: 00000307	
+0F30: 00150005		DB	000000000b,000010101b,000000000b,000000101b,000001100b,000000000b,000000010b,000000110b
+0F34: 0C000206	
+0F38: 15000302		DB	000010101b,000000000b,000000011b,000000010b,000010011b,000000000b,000110100b,000000011b
+0F3C: 13003403	
+0F40: 07010000		DB	000000111b,000000001b,000000000b,000000000b,000000000b,000000011b,000010101b,000000000b
+0F44: 00031500	
+0F48: 0004001F		DB	000000000b,000000100b,000000000b,000011111b,000000100b,000000001b,000000011b,000000010b
+0F4C: 04010302	
+0F50: 03140000		DB	000000011b,000010100b,000000000b,000000000b,000000000b,000010110b,000001101b,000000000b
+0F54: 00160D00	
+0F58: 00041303		DB	000000000b,000000100b,000010011b,000000011b,000000000b,000000000b,000000000b,000010100b
+0F5C: 00000014	
+0F60: 0B011513		DB	000001011b,000000001b,000010101b,000010011b,000000000b,000000000b,000000100b,000000011b
+0F64: 00000403	
+0F68: 07000000		DB	000000111b,000000000b,000000000b,000000000b,000011101b,000000100b,000000000b,000010110b
+0F6C: 1D040016	
+0F70: 00131500		DB	000000000b,000010011b,000010101b,000000000b,000000000b,000000100b,000000110b,000000010b
+0F74: 00040602	
+0F78: 03150000		DB	000000011b,000010101b,000000000b,000000000b,000010101b,000000000b,000100111b,000000000b
+0F7C: 15002700	
+              	
+              		ORG	0F80H
+              	
+              	; Test status of input device for character
+              	; Sets sign flag if character coming in
+0F80:         	INPCK:
+0F80: CDC00F  		CALL	IOST		;CF
+0F83: E6FF    		ANI	0FFH		;Non-zero?
+0F85: CA8A0F  		JZ	INPCK1
+0F88: F6FF    		ORI	0FFH		;Set sign flag
+0F8A:         	INPCK1:
+0F8A: C9      		RET
+              	
+              	
+              	; Input a character from the system
+              	; Return character in register 'A'
+0F8B:         	INPUT:
+0F8B: CDC50F  		CALL	IOIN
+0F8E: C9      		RET
+              	
+              	; Output a character to the system
+              	; Character to output is contained in 'A'
+0F8F:         	PRINT:
+0F8F: C5      		PUSH	B		;Save BC
+0F90: E67F    		ANI	7FH		;String parity bit
+0F92: CDD20F  		CALL	IOOUT
+0F95: C1      		POP	B		;Restore BC
+0F96: C9      		RET
+              	
+              	; Stack
+0F97: FFFFFFFF		DS	32		;Stack Area
+0F9B: FF...   	
+0FB7:         	STACK:	EQU	$
+              	
+              	;******************************************************
+              	; 88-2SIO CHANNEL A SERIAL INTERFACE FUNCTIONS        *
+              	;******************************************************
+              	
+0010:         	SIOCTL	EQU	10H		;88-2SIO CONTROL PORT
+0011:         	SIODAT	EQU	11H		;88-2SIO DATA PORT
+0002:         	SIOTXR	EQU	02H		;XMIT READY MASK
+0001:         	SIORDR	EQU	01H		;RCV READY MASK
+              	
+              	;******************************************************
+              	; IOINI - RESET AND INITIALIZE 2SIO PORT A            *
+              	;******************************************************
+0FB7: 3E03    	IOINI:	MVI	A,3		;RESET ACIA
+0FB9: D310    		OUT	SIOCTL
+0FBB: 3E15    		MVI	A,015H		;RTS ON, 8N1
+0FBD: D310    		OUT	SIOCTL
+0FBF: C9      		RET
+              	
+              	;******************************************************
+              	; IOST - TEST SERIAL PORT A FOR A CHARACTER. RETURN   *
+              	; WITH A=0 AND Z SET IF NO CHARACTER AVAILABLE.       *
+              	;******************************************************
+0FC0: DB10    	IOST:	IN	SIOCTL		;WAIT FOR A CHARACTER
+0FC2: E601    		ANI	SIORDR		;SET Z, CLEAR A IF NO CHR		
+0FC4: C9      		RET
+              	
+              	;******************************************************
+              	; IOIN - RETURN A CHARACTER FROM THE SERIAL PORT IN A.*
+              	; MSB IS CLEARED.                                     *
+              	; Z IS CLEARED UNLESS RECEIVED CHR IS A NULL.         *
+              	;******************************************************
+0FC5: CDC00F  	IOIN:	CALL	IOST		;WAIT FOR A CHARACTER
+0FC8: CAC50F  		JZ	IOIN
+              	
+0FCB: DB11    		IN	SIODAT		;A = RECEIVED CHARACTER
+0FCD: E67F    		ANI	07FH		;STRIP PARITY, CLEAR Z UNLESS NULL
+0FCF: C3D20F  		JMP	IOOUT		;ECHO CHARACTER
+              	
+              	;******************************************************
+              	; IOOUT - SEND THE CHARACTER IN A OUT THE SERIAL PORT.*
+              	; CLOBBERS C.                                         *
+              	;******************************************************
+0FD2: 4F      	IOOUT:	MOV	C,A
+0FD3: DB10    	WLOOP:	IN	SIOCTL		;WAIT UNTIL OK TO XMIT
+0FD5: E602    		ANI	SIOTXR
+0FD7: CAD30F  		JZ	WLOOP
+              	
+0FDA: 79      		MOV	A,C		
+0FDB: D311    		OUT	SIODAT		;SEND THE CHARACTER
+              	
+0FDD: C9      		RET
+              	
+              	
+0FDE: CDB70F  	CONINI:	CALL	IOINI
+0FE1: C9      		RET
+              	
+              		END
+              	
+
+
+total time: 0.0145 sec.
+no errors
